@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart';
+import 'package:text_scroll/text_scroll.dart';
+
+import 'inputs.dart';
 
 import 'player.dart' as player;
 
@@ -89,9 +92,15 @@ class _MyHomePageState extends State<MyHomePage> {
               }));
               setState(() {
                 if (player.current != null) {
-                  player.player.onPlayerComplete.listen((event) => setState(() {
-                    if (player.looping == false) player.current = null;
-                  }));
+                  player.player.onPlayerComplete.listen((event) {
+                    if (mounted) {
+                    setState(() {
+                      if (player.looping == false) player.current = null;
+                      
+                    });
+                    }
+                    if (mounted && player.looping == false) setState(() => player.current = null);
+                  });
                 }
               });
             },
@@ -131,14 +140,38 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Container(
             margin: const EdgeInsets.all(10),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Image.asset(
-                  "assets/note.png",
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  height: 50,
-                  width: 50,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Image.asset(
+                    "assets/note.png",
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    height: 50,
+                    width: 50,
+                  ),
                 ),
-                Text(basename(player.current!.path))
+                Expanded(
+                  child: TextScroll(
+                    basename(player.current!.path),
+                    fadedBorder: true,
+                    velocity: const Velocity(pixelsPerSecond: Offset(10, 0)),
+                  ),
+                ),
+                ImageButton(
+                  image: (player.playing == false) ? "play.png" : "pause.png",
+                  color: Theme.of(context).colorScheme.onBackground,
+                  pressUp: () async {   
+                    setState(() {
+                      if (player.playing) {
+                        player.player.pause();
+                      } else {
+                        player.player.resume();
+                      }
+                      player.playing = !player.playing;
+                    });
+                  },
+                ),
               ],
             ),
           ),

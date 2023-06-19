@@ -40,6 +40,8 @@ dependencies:
   audioplayers: ^4.1.0
   path:
   flutter_local_notifications: ^14.1.1
+  audio_session: ^0.1.16
+  text_scroll: ^0.2.0
 
 dev_dependencies:
   flutter_test:
