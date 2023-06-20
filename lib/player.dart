@@ -10,6 +10,7 @@ import 'package:path/path.dart';
 import 'package:audio_session/audio_session.dart';
 
 import 'widgets/inputs.dart';
+import 'queue.dart' as queue;
 
 class Player extends StatefulWidget {
   const Player({super.key, required this.file});
@@ -21,8 +22,6 @@ class Player extends StatefulWidget {
 }
 
 AudioPlayer player = AudioPlayer();
-Duration songDuration = const Duration();
-Duration songPosition = const Duration();
 var current;
 double volume = 1.0;
 bool looping = false;
@@ -31,13 +30,17 @@ bool playing = false;
 class _PlayerState extends State<Player> {
 
   late AudioSession session;
-  bool ended = false;
 
   var onPosChanged;
   var onComplete;
   var onNoisyEvent;
 
   bool loaded = false;
+  bool ended = false;
+  bool localplaying = false;
+
+  Duration songDuration = const Duration();
+  Duration songPosition = const Duration();
 
   @override
   void initState() {
@@ -52,31 +55,10 @@ class _PlayerState extends State<Player> {
   }
 
   void initPlayer() {
-    player.audioCache.clearAll();
-    if (current != widget.file) {
-      player.stop();
-    }
-
     AudioSession.instance.then((session) async {
       await session.configure(const AudioSessionConfiguration.music());
       handleInterruptions(session);
     });
-    
-    player.play(DeviceFileSource(widget.file.path));
-    setState(() {
-      playing = true;
-    });
-
-    //songDuration = ()!;
-    player.getDuration().then((value) => songDuration = value!);
-    songPosition = Duration.zero;
-
-    onComplete = player.onPlayerComplete.listen((event) {
-      playing = false;
-      current = null;
-      if (mounted) setState(() => ended = true);
-    });
-    current = widget.file;
     loaded = true;
   }
 
@@ -114,9 +96,34 @@ class _PlayerState extends State<Player> {
   }
   bool draggingVolume = false;
 
-  void togglePlaying({override}) {
+  void togglePlaying({override}) async {
     bool status = !playing;
     if (override != null) status = override;
+
+    if (widget.file == current) {
+      localplaying = playing;
+    }
+
+    if (current != widget.file && localplaying == false) {
+      playing = true;
+      localplaying = true;
+      player.audioCache.clearAll();
+      await player.stop();
+      
+      await player.play(DeviceFileSource(widget.file.path));
+
+      player.getDuration().then((value) => songDuration = value!);
+      songPosition = Duration.zero;
+      
+      onComplete = player.onPlayerComplete.listen((event) {
+        playing = false;
+        current = null;
+        if (mounted) setState(() => ended = true);
+      });
+
+      current = widget.file;
+      return;
+    }
 
     if (ended == true && looping == false) {
       player.play(DeviceFileSource(widget.file.path));
@@ -146,6 +153,7 @@ class _PlayerState extends State<Player> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.file == current) localplaying = playing;
     String filename = basename(widget.file.path);
     return loaded ? Container(
       decoration: BoxDecoration(
@@ -178,7 +186,9 @@ class _PlayerState extends State<Player> {
                   ),
                 ),
                 GestureDetector(
-                  onTapUp: (details) => setState(() => togglePlaying()),
+                  onTapUp: (details) => setState(() {
+                    togglePlaying();
+                  }),
                   onVerticalDragStart:(details) => setState(()=> draggingVolume = true),
                   onVerticalDragUpdate: (details) {
                     double delta = details.delta.dy / 100;
@@ -255,7 +265,7 @@ class _PlayerState extends State<Player> {
                   builder: (BuildContext ctx, StateSetter setSliderState) {
                     
                     onPosChanged = player.onPositionChanged.listen((newPosition) {
-                      if (ctx.mounted) {
+                      if (mounted && widget.file == current) {
                         setSliderState(() {
                           songPosition = newPosition;
                         });
@@ -273,7 +283,7 @@ class _PlayerState extends State<Player> {
                               thumbShape: SliderComponentShape.noThumb
                             ), 
                             child: Slider(
-                              activeColor: playing ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
+                              activeColor: localplaying ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
                               value: clampDouble(songPosition.inMilliseconds.toDouble(), 0, songDuration.inMilliseconds.toDouble()) ,
                               min: 0.0,
                               max: songDuration.inMilliseconds.toDouble(),
@@ -292,18 +302,27 @@ class _PlayerState extends State<Player> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ImageButton(
-                      image: (playing == false || ended == true) ? "play.png" : "pause.png",
-                      color: Theme.of(context).colorScheme.onBackground,
-                      pressUp: () => {
-                        setState(() => togglePlaying())
+                      image: "songqueue.png",
+                      color: queue.queueList.contains(widget.file) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                      pressUp: () async {
+                        await showDialog(
+                          context: context,
+                          builder: (context) => queue.queueDialog(context, widget.file)
+                        );
+                        setState(() {});
                       },
                     ),
                     ImageButton(
+                      image: (localplaying == false || ended == true) ? "play.png" : "pause.png",
+                      color: Theme.of(context).colorScheme.onBackground,
+                      pressUp: () => setState(() {
+                        togglePlaying();
+                      }),
+                    ),
+                    ImageButton(
                       image: "repeat.png",
-                      color: looping ? Theme.of(context).colorScheme.onBackground : Theme.of(context).colorScheme.secondary,
-                      pressUp: () => {
-                        setState(() => toggleLooping())
-                      },
+                      color: looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                      pressUp: () => setState(() => toggleLooping()),
                     )
                   ],
                 ),

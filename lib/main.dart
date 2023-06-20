@@ -7,6 +7,8 @@ import 'package:text_scroll/text_scroll.dart';
 import 'widgets/inputs.dart';
 
 import 'player.dart' as player;
+import 'homelist.dart';
+import 'queue.dart';
 
 void main() {
   runApp(const MyApp());
@@ -52,6 +54,14 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late List<FileSystemEntity> files = [];
+  Widget currentPage = const Center(
+    child: SizedBox(
+      width: 175,height: 175,
+      child: CircularProgressIndicator(
+        strokeWidth: 20,
+      )
+    ),
+  );
 
   void getMusicFiles() async {
     var status = await Permission.storage.status;
@@ -63,6 +73,8 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       files = songs;
     });
+
+    currentPage = HomeList(files: files);
   }
 
   @override
@@ -71,67 +83,34 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
   }
 
+
   @override
   Widget build(BuildContext context) {
-    List<Widget> getElements() {
-      List<Widget> elements = [];
-      for (var element in files) {
-        String filename = basename(element.path);
-        bool selected = (element == player.current);
-        elements.add(Card(
-          color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
-          elevation: (element == player.current) ? 20 : 1,
-          child: ListTile(
-            leading: Image.asset(
-              'assets/note.png',
-              color: selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onBackground,
-              height: 35,
-              fit: BoxFit.contain,
-            ),
-            title: Text(
-              filename,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onBackground,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal
-              ),
-            ),
-            onTap: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return player.Player(file: element);
-              }));
-              setState(() {
-                if (player.current != null) {
-                  player.player.onPlayerComplete.listen((event) {
-                    if (mounted) {
-                    setState(() {
-                      if (player.looping == false) player.current = null;
-                      
-                    });
-                    }
-                    if (mounted && player.looping == false) setState(() => player.current = null);
-                  });
-                }
-              });
-            },
-          ),
-        ));
-      }
-      return elements;
-    }
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-        toolbarHeight: 0,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        toolbarOpacity: 0,
+        toolbarHeight: kToolbarHeight*1.5,
+        
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ImageButton(
+              image: "note.png",
+              color: Theme.of(context).colorScheme.onPrimary,
+              width: 40, height: 40,
+              pressUp: () => setState( () => currentPage = HomeList(files: files,)),
+            ),
+            ImageButton(
+              image: "songqueue.png",
+              color: Theme.of(context).colorScheme.onPrimary,
+              width: 50, height: 50,
+              pressUp: () => setState( () => currentPage = const Queue()),
+            )
+          ],
+        ),
       ),
-      body: files.isEmpty ? const ListTile(title: Text("No files found")) : Center(
-        child: FractionallySizedBox(
-          widthFactor: 0.95,
-          child: ListView(
-            children: getElements()
-          ),
-        )
-      ),
+      body: currentPage,
       bottomNavigationBar: player.current != null ? Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
