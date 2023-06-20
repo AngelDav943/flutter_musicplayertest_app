@@ -155,217 +155,223 @@ class _PlayerState extends State<Player> {
   Widget build(BuildContext context) {
     if (widget.file == current) localplaying = playing;
     String filename = basename(widget.file.path);
-    return loaded ? Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.surface,
-            Theme.of(context).colorScheme.background,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        )
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: FractionallySizedBox(
-            widthFactor: 0.9,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  alignment: Alignment.centerLeft,
-                  margin: const EdgeInsets.only(top: 40, bottom: 10),
-                  child: ImageButton(
-                    image: "back.png",
-                    color: Theme.of(context).colorScheme.onBackground,
-                    pressUp: () {
-                      Navigator.pop(context, true);
-                    },
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, false);
+        return false;
+      },
+      child: loaded ? Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.background,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          )
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: FractionallySizedBox(
+              widthFactor: 0.9,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    alignment: Alignment.centerLeft,
+                    margin: const EdgeInsets.only(top: 40, bottom: 10),
+                    child: ImageButton(
+                      image: "back.png",
+                      color: Theme.of(context).colorScheme.onBackground,
+                      pressUp: () {
+                        Navigator.pop(context, true);
+                      },
+                    ),
                   ),
-                ),
-                GestureDetector(
-                  onTapUp: (details) => setState(() {
-                    togglePlaying();
-                  }),
-                  onVerticalDragStart:(details) => setState(()=> draggingVolume = true),
-                  onVerticalDragUpdate: (details) {
-                    double delta = details.delta.dy / 100;
-                    setState(() => volume = clampDouble(volume - delta, 0, 1));
-                    player.setVolume(volume);
-                  },
-                  onVerticalDragCancel: () => setState(() => draggingVolume = false),
-                  onVerticalDragEnd: (details) => setState(() => draggingVolume = false),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeInOut,
-                    height: 250,
-                    width: 250,
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        radius: 1.2 * clampDouble(-volume * (volume - 2), 0.2, 1),
-                        colors: [
-                          Color.alphaBlend(
-                            Theme.of(context).colorScheme.secondary.withOpacity(-(volume*(volume)) + 1), 
-                            Theme.of(context).colorScheme.primary.withOpacity(volume)
-                          ),
-                          Color.alphaBlend(
-                            Theme.of(context).colorScheme.surface.withOpacity(-(volume*(volume)) + 1), 
-                            Theme.of(context).colorScheme.secondary.withOpacity(volume)
+                  GestureDetector(
+                    onTapUp: (details) => setState(() {
+                      togglePlaying();
+                    }),
+                    onVerticalDragStart:(details) => setState(()=> draggingVolume = true),
+                    onVerticalDragUpdate: (details) {
+                      double delta = details.delta.dy / 100;
+                      setState(() => volume = clampDouble(volume - delta, 0, 1));
+                      player.setVolume(volume);
+                    },
+                    onVerticalDragCancel: () => setState(() => draggingVolume = false),
+                    onVerticalDragEnd: (details) => setState(() => draggingVolume = false),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeInOut,
+                      height: 250,
+                      width: 250,
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          radius: 1.2 * clampDouble(-volume * (volume - 2), 0.2, 1),
+                          colors: [
+                            Color.alphaBlend(
+                              Theme.of(context).colorScheme.secondary.withOpacity(-(volume*(volume)) + 1), 
+                              Theme.of(context).colorScheme.primary.withOpacity(volume)
+                            ),
+                            Color.alphaBlend(
+                              Theme.of(context).colorScheme.surface.withOpacity(-(volume*(volume)) + 1), 
+                              Theme.of(context).colorScheme.secondary.withOpacity(volume)
+                            ),
+                          ],
+                        ),
+                        borderRadius: const BorderRadius.all(Radius.circular(15)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.5),
+                            spreadRadius: 0,
+                            blurRadius: 15,
                           ),
                         ],
                       ),
-                      borderRadius: const BorderRadius.all(Radius.circular(15)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.5),
-                          spreadRadius: 0,
-                          blurRadius: 15,
-                        ),
-                      ],
+                      child: Stack(
+                        alignment: AlignmentDirectional.center,
+                        children: [
+                          Image.asset(
+                            'assets/note.png',
+                            height: 125 * max(volume, 0.7),
+                            width: 125 * max(volume, 0.7),
+                            fit: BoxFit.cover,
+                            color: Theme.of(context).colorScheme.onPrimary.withOpacity(max(0.1, volume)),
+                          ),
+                          Container(
+                            child: (draggingVolume == true) ? Container(
+                              decoration: const BoxDecoration(
+                                color: Color.fromARGB(76, 0, 0, 0),
+                                borderRadius: BorderRadius.all(Radius.circular(15))
+                              ),
+                              width: 30,
+                              height: 150,
+                              padding: const EdgeInsets.all(10),
+                              child: RotatedBox(
+                                quarterTurns: -1,
+                                child: LinearProgressIndicator(value: volume)
+                              ),
+                            ) : const SizedBox(width: 0,height: 0,),
+                          ),
+                        ],
+                      )
                     ),
-                    child: Stack(
-                      alignment: AlignmentDirectional.center,
-                      children: [
-                        Image.asset(
-                          'assets/note.png',
-                          height: 125 * max(volume, 0.7),
-                          width: 125 * max(volume, 0.7),
-                          fit: BoxFit.cover,
-                          color: Theme.of(context).colorScheme.onPrimary.withOpacity(max(0.1, volume)),
-                        ),
-                        Container(
-                          child: (draggingVolume == true) ? Container(
-                            decoration: const BoxDecoration(
-                              color: Color.fromARGB(76, 0, 0, 0),
-                              borderRadius: BorderRadius.all(Radius.circular(15))
-                            ),
-                            width: 30,
-                            height: 150,
-                            padding: const EdgeInsets.all(10),
-                            child: RotatedBox(
-                              quarterTurns: -1,
-                              child: LinearProgressIndicator(value: volume)
-                            ),
-                          ) : const SizedBox(width: 0,height: 0,),
-                        ),
-                      ],
+                  ),
+                  Text(
+                    filename, 
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onBackground,
+                      fontWeight: FontWeight.bold
                     )
                   ),
-                ),
-                Text(
-                  filename, 
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontWeight: FontWeight.bold
-                  )
-                ),
-                StatefulBuilder(
-                  builder: (BuildContext ctx, StateSetter setSliderState) {
-                    
-                    onPosChanged = player.onPositionChanged.listen((newPosition) {
-                      if (mounted && widget.file == current) {
-                        setSliderState(() {
-                          songPosition = newPosition;
-                        });
-                      }
-                    });
-
-                    return Row(
-                      children: [
-                        Text(formatTime(songPosition.inSeconds)),
-                        Expanded(
-                          child: SliderTheme(
-                            data: SliderThemeData(
-                              trackShape: const RectangularSliderTrackShape(),
-                              trackHeight: 20,
-                              thumbShape: SliderComponentShape.noThumb
-                            ), 
-                            child: Slider(
-                              activeColor: localplaying ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
-                              value: clampDouble(songPosition.inMilliseconds.toDouble(), 0, songDuration.inMilliseconds.toDouble()) ,
-                              min: 0.0,
-                              max: songDuration.inMilliseconds.toDouble(),
-                              onChanged: (double value) {
-                                seekToMillisecond(value.toInt());
-                              },
+                  StatefulBuilder(
+                    builder: (BuildContext ctx, StateSetter setSliderState) {
+                      
+                      onPosChanged = player.onPositionChanged.listen((newPosition) {
+                        if (mounted && widget.file == current) {
+                          setSliderState(() {
+                            songPosition = newPosition;
+                          });
+                        }
+                      });
+    
+                      return Row(
+                        children: [
+                          Text(formatTime(songPosition.inSeconds)),
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderThemeData(
+                                trackShape: const RectangularSliderTrackShape(),
+                                trackHeight: 20,
+                                thumbShape: SliderComponentShape.noThumb
+                              ), 
+                              child: Slider(
+                                activeColor: localplaying ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
+                                value: clampDouble(songPosition.inMilliseconds.toDouble(), 0, songDuration.inMilliseconds.toDouble()) ,
+                                min: 0.0,
+                                max: songDuration.inMilliseconds.toDouble(),
+                                onChanged: (double value) {
+                                  seekToMillisecond(value.toInt());
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                        Text(formatTime(songDuration.inSeconds))
-                      ],
-                    );
-                  }
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ImageButton(
-                      image: "songqueue.png",
-                      color: queue.queueList.contains(widget.file) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
-                      pressUp: () async {
-                        await showDialog(
-                          context: context,
-                          builder: (context) => queue.queueDialog(context, widget.file)
-                        );
-                        setState(() {});
-                      },
-                    ),
-                    ImageButton(
-                      image: (localplaying == false || ended == true) ? "play.png" : "pause.png",
-                      color: Theme.of(context).colorScheme.onBackground,
-                      pressUp: () => setState(() {
-                        togglePlaying();
-                      }),
-                    ),
-                    ImageButton(
-                      image: "repeat.png",
-                      color: looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
-                      pressUp: () => setState(() => toggleLooping()),
-                    )
-                  ],
-                ),
-                const SizedBox(
-                  height: 40,
-                )
-              ]
+                          Text(formatTime(songDuration.inSeconds))
+                        ],
+                      );
+                    }
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ImageButton(
+                        image: "songqueue.png",
+                        color: queue.queueList.contains(widget.file) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                        pressUp: () async {
+                          await showDialog(
+                            context: context,
+                            builder: (context) => queue.queueDialog(context, widget.file)
+                          );
+                          setState(() {});
+                        },
+                      ),
+                      ImageButton(
+                        image: (localplaying == false || ended == true) ? "play.png" : "pause.png",
+                        color: Theme.of(context).colorScheme.onBackground,
+                        pressUp: () => setState(() {
+                          togglePlaying();
+                        }),
+                      ),
+                      ImageButton(
+                        image: "repeat.png",
+                        color: looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                        pressUp: () => setState(() => toggleLooping()),
+                      )
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 40,
+                  )
+                ]
+              ),
             ),
           ),
         ),
-      ),
-    ) : Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.surface,
-            Theme.of(context).colorScheme.background,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        )
-      ),
-      child: Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Image.asset(
-              'assets/note.png',
-              height: 125,
-              width: 125,
-              fit: BoxFit.cover,
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            const SizedBox(
-              width: 175,
-              height: 175,
-              child: CircularProgressIndicator(
-                strokeWidth: 20,
-              )
-            ),
-          ],
+      ) : Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.background,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          )
         ),
-      ), 
+        child: Center(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.asset(
+                'assets/note.png',
+                height: 125,
+                width: 125,
+                fit: BoxFit.cover,
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
+              const SizedBox(
+                width: 175,
+                height: 175,
+                child: CircularProgressIndicator(
+                  strokeWidth: 20,
+                )
+              ),
+            ],
+          ),
+        ), 
+      ),
     );
   }
 }
