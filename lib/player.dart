@@ -2,7 +2,6 @@
 
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -69,7 +68,7 @@ class _PlayerState extends State<Player> {
     });
 
     //songDuration = ()!;
-    player.getDuration().then((value) => songDuration);
+    player.getDuration().then((value) => songDuration = value!);
     songPosition = Duration.zero;
 
     onComplete = player.onPlayerComplete.listen((event) {
@@ -102,11 +101,11 @@ class _PlayerState extends State<Player> {
     return time.join(':').padLeft(1, '0');
   }
 
-  void seekToMillisecond(int milliseconds) async {
+  void seekToMillisecond(int milliseconds) {
     if (ended == true || current == null) {
       ended = false;
       current = widget.file;
-      await player.play(DeviceFileSource(widget.file.path));
+      player.play(DeviceFileSource(widget.file.path));
       
       if (playing == false) player.pause();
     }
@@ -178,77 +177,72 @@ class _PlayerState extends State<Player> {
                     },
                   ),
                 ),
-                StatefulBuilder(
-                  builder: (BuildContext ctx, StateSetter setMainState) {
-                    return GestureDetector(
-                      onTapUp: (details) => setState(() =>togglePlaying()),
-                      onVerticalDragStart:(details) => setMainState(()=> draggingVolume = true),
-                      onVerticalDragUpdate: (details) {
-                        double delta = details.delta.dy / 100;
-                        setMainState(() => volume = clampDouble(volume - delta, 0, 1));
-                        player.setVolume(volume);
-                      },
-                      onVerticalDragCancel: () => setMainState(() => draggingVolume = false),
-                      onVerticalDragEnd: (details) => setMainState(() => draggingVolume = false),
-                      child: Container(
-                        height: 250,
-                        width: 250,
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            radius: 1.2 * clampDouble(-volume * (volume - 2), 0.2, 1),
-                            colors: [
-                              Color.alphaBlend(
-                                Theme.of(context).colorScheme.secondary.withOpacity(-(volume*(volume)) + 1), 
-                                Theme.of(context).colorScheme.primary.withOpacity(volume)
-                              ),
-                              Color.alphaBlend(
-                                Theme.of(context).colorScheme.surface.withOpacity(-(volume*(volume)) + 1), 
-                                Theme.of(context).colorScheme.secondary.withOpacity(volume)
-                              ),
-                            ],
+                GestureDetector(
+                  onTapUp: (details) => setState(() => togglePlaying()),
+                  onVerticalDragStart:(details) => setState(()=> draggingVolume = true),
+                  onVerticalDragUpdate: (details) {
+                    double delta = details.delta.dy / 100;
+                    setState(() => volume = clampDouble(volume - delta, 0, 1));
+                    player.setVolume(volume);
+                  },
+                  onVerticalDragCancel: () => setState(() => draggingVolume = false),
+                  onVerticalDragEnd: (details) => setState(() => draggingVolume = false),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeInOut,
+                    height: 250,
+                    width: 250,
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        radius: 1.2 * clampDouble(-volume * (volume - 2), 0.2, 1),
+                        colors: [
+                          Color.alphaBlend(
+                            Theme.of(context).colorScheme.secondary.withOpacity(-(volume*(volume)) + 1), 
+                            Theme.of(context).colorScheme.primary.withOpacity(volume)
                           ),
-                          borderRadius: const BorderRadius.all(Radius.circular(10)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.5),
-                              spreadRadius: 0,
-                              blurRadius: 15,
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          alignment: AlignmentDirectional.center,
-                          children: [
-                            Image.asset(
-                              'assets/note.png',
-                              height: 125 * max(volume, 0.7),
-                              width: 125 * max(volume, 0.7),
-                              fit: BoxFit.cover,
-                              color: Theme.of(context).colorScheme.onPrimary.withOpacity(max(0.1, volume)),
-                            ),
-                            Container(
-                              child: (draggingVolume == true) ? Container(
-                                decoration: const BoxDecoration(
-                                  color: Color.fromARGB(76, 0, 0, 0),
-                                  borderRadius: BorderRadius.all(Radius.circular(10))
-                                ),
-                                width: 30,
-                                height: 150,
-                                padding: const EdgeInsets.all(10),
-                                child: RotatedBox(
-                                  quarterTurns: -1,
-                                  child: ProgressIndicatorTheme(
-                                    data: const ProgressIndicatorThemeData(),
-                                    child: LinearProgressIndicator(value: volume)
-                                  )
-                                ),
-                              ) : const SizedBox(width: 0,height: 0,),
-                            ),
-                          ],
-                        )
+                          Color.alphaBlend(
+                            Theme.of(context).colorScheme.surface.withOpacity(-(volume*(volume)) + 1), 
+                            Theme.of(context).colorScheme.secondary.withOpacity(volume)
+                          ),
+                        ],
                       ),
-                    );
-                  }
+                      borderRadius: const BorderRadius.all(Radius.circular(15)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          spreadRadius: 0,
+                          blurRadius: 15,
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      alignment: AlignmentDirectional.center,
+                      children: [
+                        Image.asset(
+                          'assets/note.png',
+                          height: 125 * max(volume, 0.7),
+                          width: 125 * max(volume, 0.7),
+                          fit: BoxFit.cover,
+                          color: Theme.of(context).colorScheme.onPrimary.withOpacity(max(0.1, volume)),
+                        ),
+                        Container(
+                          child: (draggingVolume == true) ? Container(
+                            decoration: const BoxDecoration(
+                              color: Color.fromARGB(76, 0, 0, 0),
+                              borderRadius: BorderRadius.all(Radius.circular(15))
+                            ),
+                            width: 30,
+                            height: 150,
+                            padding: const EdgeInsets.all(10),
+                            child: RotatedBox(
+                              quarterTurns: -1,
+                              child: LinearProgressIndicator(value: volume)
+                            ),
+                          ) : const SizedBox(width: 0,height: 0,),
+                        ),
+                      ],
+                    )
+                  ),
                 ),
                 Text(
                   filename, 
@@ -279,16 +273,12 @@ class _PlayerState extends State<Player> {
                               thumbShape: SliderComponentShape.noThumb
                             ), 
                             child: Slider(
+                              activeColor: playing ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
                               value: clampDouble(songPosition.inMilliseconds.toDouble(), 0, songDuration.inMilliseconds.toDouble()) ,
                               min: 0.0,
                               max: songDuration.inMilliseconds.toDouble(),
                               onChanged: (double value) {
-                                setSliderState(() {
-                                  seekToMillisecond(value.toInt());
-                                });
-                              },
-                              onChangeEnd:(value) {
-                                togglePlaying(override: true);
+                                seekToMillisecond(value.toInt());
                               },
                             ),
                           ),
