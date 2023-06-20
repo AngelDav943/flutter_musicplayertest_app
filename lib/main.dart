@@ -4,7 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart';
 import 'package:text_scroll/text_scroll.dart';
 
-import 'inputs.dart';
+import 'widgets/inputs.dart';
 
 import 'player.dart' as player;
 
@@ -34,6 +34,7 @@ class MyApp extends StatelessWidget {
           onSecondary: Color.fromRGBO(177, 193, 225, 1),
           onPrimary: Color.fromRGBO(201, 214, 250, 1),
           onError: Color.fromRGBO(255, 207, 207, 1),
+          inversePrimary: Color.fromRGBO(255, 216, 110, 1)
         ),
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
@@ -76,16 +77,24 @@ class _MyHomePageState extends State<MyHomePage> {
       List<Widget> elements = [];
       for (var element in files) {
         String filename = basename(element.path);
+        bool selected = (element == player.current);
         elements.add(Card(
+          color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
           elevation: (element == player.current) ? 20 : 1,
           child: ListTile(
-            leading: (element == player.current) ? Image.asset(
+            leading: Image.asset(
               'assets/note.png',
-              color: Theme.of(context).colorScheme.onSurface,
+              color: selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onBackground,
               height: 35,
               fit: BoxFit.contain,
-            ) : null,
-            title: Text(filename),
+            ),
+            title: Text(
+              filename,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onBackground,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal
+              ),
+            ),
             onTap: () async {
               await Navigator.push(context, MaterialPageRoute(builder: (context) {
                 return player.Player(file: element);
@@ -116,8 +125,11 @@ class _MyHomePageState extends State<MyHomePage> {
         toolbarHeight: 0,
       ),
       body: files.isEmpty ? const ListTile(title: Text("No files found")) : Center(
-        child: ListView(
-          children: getElements()
+        child: FractionallySizedBox(
+          widthFactor: 0.95,
+          child: ListView(
+            children: getElements()
+          ),
         )
       ),
       bottomNavigationBar: player.current != null ? Container(
@@ -143,7 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
                   child: Image.asset(
                     "assets/note.png",
                     color: Theme.of(context).colorScheme.onPrimary,
@@ -154,11 +166,16 @@ class _MyHomePageState extends State<MyHomePage> {
                 Expanded(
                   child: TextScroll(
                     basename(player.current!.path),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      //color: Theme.of(context).colorScheme.inversePrimary,
+                      fontWeight: FontWeight.bold
+                    ),
                     fadedBorder: true,
                     velocity: const Velocity(pixelsPerSecond: Offset(10, 0)),
                   ),
                 ),
                 ImageButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
                   image: (player.playing == false) ? "play.png" : "pause.png",
                   color: Theme.of(context).colorScheme.onBackground,
                   pressUp: () async {   
