@@ -72,14 +72,14 @@ class _SongTileState extends State<SongTile> {
       child: ListTile(
         leading: Image.asset(
           'assets/note.png',
-          color: widget.selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onBackground,
+          color: widget.selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onSurface,
           height: 35,
           fit: BoxFit.contain,
         ),
         title: Text(
           widget.filename,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: widget.selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onBackground,
+            color: widget.selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onSurface,
             fontWeight: widget.selected ? FontWeight.bold : FontWeight.normal
           ),
         ),

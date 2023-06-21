@@ -280,7 +280,8 @@ class _PlayerState extends State<Player> {
                     ),
                   ),
                   Text(
-                    filename, 
+                    filename,
+                    textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onBackground,
                       fontWeight: FontWeight.bold

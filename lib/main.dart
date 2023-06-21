@@ -25,8 +25,25 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: const ColorScheme(
-          background: Color.fromRGBO(32, 32, 32, 1.0),
+          brightness: Brightness.light,
+          background: Color.fromRGBO(202, 219, 233, 1),
+          surface: Color.fromRGBO(176, 198, 247, 1),
+          secondary: Color.fromRGBO(135, 122, 219, 1),
+          primary: Color.fromRGBO(117, 172, 255, 1),
+          error: Color.fromRGBO(187, 53, 53, 1),
+          onBackground: Color.fromRGBO(125, 134, 148, 1),
+          onSurface: Color.fromRGBO(77, 95, 255, 1),
+          onSecondary: Color.fromRGBO(177, 193, 225, 1),
+          onPrimary: Color.fromRGBO(201, 214, 250, 1),
+          onError: Color.fromRGBO(255, 207, 207, 1),
+          inversePrimary: Color.fromRGBO(255, 216, 110, 1)
+        ),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: const ColorScheme(
           brightness: Brightness.dark,
+          background: Color.fromRGBO(32, 32, 32, 1.0),
           surface: Color.fromRGBO(77, 84, 97, 1),
           secondary: Color.fromRGBO(105, 95, 172, 1),
           primary: Color.fromRGBO(117, 125, 229, 1),
@@ -39,6 +56,7 @@ class MyApp extends StatelessWidget {
           inversePrimary: Color.fromRGBO(255, 216, 110, 1)
         ),
       ),
+      themeMode: ThemeMode.dark,
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );   
   }
@@ -69,8 +87,6 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       files = songs;
     });
-
-    //currentPage = HomeList(files: files);
   }
 
   @override
@@ -166,7 +182,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ImageButton(
                   padding: const EdgeInsets.symmetric(horizontal: 5),
                   image: (player.playing == false) ? "play.png" : "pause.png",
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: Theme.of(context).colorScheme.onPrimary,
                   pressUp: () async {   
                     setState(() {
                       if (player.playing) {
