@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_typing_uninitialized_variables
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -22,7 +23,11 @@ class Player extends StatefulWidget {
 }
 
 AudioPlayer player = AudioPlayer();
+
+StreamController _onPlayerUpdateController = StreamController.broadcast();
+Stream onPlayerUpdate = _onPlayerUpdateController.stream;
 var current;
+
 double volume = 1.0;
 bool looping = false;
 bool playing = false;
@@ -48,6 +53,7 @@ class _PlayerState extends State<Player> {
     super.initState();
   }
 
+
   @override
   void dispose() {
     if (onPosChanged != null) onPosChanged.cancel();
@@ -60,6 +66,18 @@ class _PlayerState extends State<Player> {
       handleInterruptions(session);
     });
     loaded = true;
+    
+    if (widget.file != current) return;
+    getPositions();
+  }
+
+  void getPositions() async {
+    var position = (await player.getCurrentPosition())!;
+    var duration = (await player.getDuration())!;
+    setState((){
+      songPosition = position;
+      songDuration = duration;
+    });
   }
 
   void handleInterruptions(AudioSession session) {
@@ -87,6 +105,7 @@ class _PlayerState extends State<Player> {
     if (ended == true || current == null) {
       ended = false;
       current = widget.file;
+      _onPlayerUpdateController.add(null);
       player.play(DeviceFileSource(widget.file.path));
       
       if (playing == false) player.pause();
@@ -100,10 +119,6 @@ class _PlayerState extends State<Player> {
     bool status = !playing;
     if (override != null) status = override;
 
-    if (widget.file == current) {
-      localplaying = playing;
-    }
-
     if (current != widget.file && localplaying == false) {
       playing = true;
       localplaying = true;
@@ -113,15 +128,17 @@ class _PlayerState extends State<Player> {
       await player.play(DeviceFileSource(widget.file.path));
 
       player.getDuration().then((value) => songDuration = value!);
-      songPosition = Duration.zero;
+      player.getCurrentPosition().then((value) => songPosition = value!);
       
       onComplete = player.onPlayerComplete.listen((event) {
         playing = false;
+        _onPlayerUpdateController.add(null);
         current = null;
         if (mounted) setState(() => ended = true);
       });
 
       current = widget.file;
+      _onPlayerUpdateController.add(null);
       return;
     }
 
@@ -138,6 +155,9 @@ class _PlayerState extends State<Player> {
     } else {
       player.pause();
     }
+
+    if (widget.file == current) localplaying = playing;
+    _onPlayerUpdateController.add(null);
   }
 
   void toggleLooping() {

@@ -7,6 +7,7 @@ import 'widgets/inputs.dart';
 import 'player.dart' as player;
 
 List<FileSystemEntity> queueList = [];
+bool loop = false;
 
 bool addToQueue(FileSystemEntity file) {
   var contains = queueList.contains(file);
@@ -87,7 +88,7 @@ class _QueueState extends State<Queue> {
       for (var element in queueList) {
         String filename = basename(element.path);
         bool selected = (element == player.current);
-        elements.add(songTile(selected: selected, element: element, filename: filename));
+        elements.add(SongTile(selected: selected, element: element, filename: filename));
       }
       return elements;
     }

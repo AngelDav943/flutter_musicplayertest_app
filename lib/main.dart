@@ -54,13 +54,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late List<FileSystemEntity> files = [];
-  Widget currentPage = const Center(
-    child: SizedBox(
-      width: 175,height: 175,
-      child: CircularProgressIndicator(
-        strokeWidth: 20,
-      )
-    ),
+  var indexPage = 0;
+  Widget currentPage = Center(
+    child: Image.asset("assets/note.png"),
   );
 
   void getMusicFiles() async {
@@ -74,18 +70,32 @@ class _MyHomePageState extends State<MyHomePage> {
       files = songs;
     });
 
-    currentPage = HomeList(files: files);
+    //currentPage = HomeList(files: files);
   }
 
   @override
   void initState() {
     getMusicFiles();
+    player.onPlayerUpdate.listen((event) => {
+      if (mounted) setState(() {})
+    });
     super.initState();
   }
 
 
   @override
   Widget build(BuildContext context) {
+    switch (indexPage) {
+      case 0:
+        currentPage = HomeList(files: files);
+        break;
+      case 1:
+        // ignore: prefer_const_constructors
+        currentPage = Queue();
+        break;
+    }
+
+    currentPage = currentPage;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -97,15 +107,15 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             ImageButton(
               image: "note.png",
-              color: Theme.of(context).colorScheme.onPrimary,
+              color: indexPage == 0 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
               width: 40, height: 40,
-              pressUp: () => setState( () => currentPage = HomeList(files: files,)),
+              pressUp: () => setState( () => indexPage = 0),
             ),
             ImageButton(
               image: "songqueue.png",
-              color: Theme.of(context).colorScheme.onPrimary,
+              color: indexPage == 1 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
               width: 50, height: 50,
-              pressUp: () => setState( () => currentPage = const Queue()),
+              pressUp: () => setState( () => indexPage = 1),
             )
           ],
         ),

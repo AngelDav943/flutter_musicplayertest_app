@@ -7,7 +7,7 @@ import 'player.dart' as player;
 
 // ignore: must_be_immutable
 class HomeList extends StatefulWidget {
-  HomeList({super.key, this.files = const []});
+  const HomeList({super.key, this.files = const []});
 
   final List<FileSystemEntity> files;
 
@@ -25,7 +25,7 @@ class _HomeListState extends State<HomeList> {
       for (var element in widget.files) {
         String filename = basename(element.path);
         bool selected = (element == player.current);
-        elements.add(songTile(selected: selected, element: element, filename: filename));
+        elements.add(SongTile(selected: selected, element: element, filename: filename));
       }
       return elements;
     }

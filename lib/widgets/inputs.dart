@@ -47,8 +47,8 @@ class ImageButton extends StatelessWidget {
   }
 }
 
-class songTile extends StatefulWidget {
-  const songTile({
+class SongTile extends StatefulWidget {
+  const SongTile({
     super.key,
     required this.selected,
     required this.element,
@@ -60,10 +60,10 @@ class songTile extends StatefulWidget {
   final String filename;
 
   @override
-  State<songTile> createState() => _songTileState();
+  State<SongTile> createState() => _SongTileState();
 }
 
-class _songTileState extends State<songTile> {
+class _SongTileState extends State<SongTile> {
   @override
   Widget build(BuildContext context) {
     return Card(
