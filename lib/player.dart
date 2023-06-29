@@ -14,9 +14,10 @@ import 'widgets/inputs.dart';
 import 'queue.dart' as queue;
 
 class Player extends StatefulWidget {
-  const Player({super.key, required this.file});
+  const Player({super.key, required this.file, this.playing = false});
 
   final FileSystemEntity file;
+  final bool playing;
 
   @override
   State<Player> createState() => _PlayerState();
@@ -52,7 +53,6 @@ class _PlayerState extends State<Player> {
     initPlayer();
     super.initState();
   }
-
 
   @override
   void dispose() {
@@ -93,6 +93,12 @@ class _PlayerState extends State<Player> {
         });
       }
     });
+
+    session.interruptionEventStream.listen((event) {
+      if (event.begin) {
+        togglePlaying(null, override: false);
+      }
+    });
   }
 
   String formatTime(int seconds) {
@@ -115,11 +121,11 @@ class _PlayerState extends State<Player> {
   }
   bool draggingVolume = false;
 
-  void togglePlaying({override}) async {
+  void togglePlaying(context, {override}) async {
     bool status = !playing;
     if (override != null) status = override;
 
-    if (current != widget.file && localplaying == false) {
+    if ((current != widget.file || player.source == null) && localplaying == false) {
       playing = true;
       localplaying = true;
       player.audioCache.clearAll();
@@ -131,12 +137,14 @@ class _PlayerState extends State<Player> {
       player.getCurrentPosition().then((value) => songPosition = value!);
       
       onComplete = player.onPlayerComplete.listen((event) {
-        playing = false;
+        if (context != null) queue.queueSongEnd(context);
+        if (queue.loop == false) {
+          playing = false;
+          current = null;
+        }
         _onPlayerUpdateController.add(null);
-        current = null;
         if (mounted) setState(() => ended = true);
       });
-
       current = widget.file;
       _onPlayerUpdateController.add(null);
       return;
@@ -162,17 +170,24 @@ class _PlayerState extends State<Player> {
 
   void toggleLooping() {
     if (ended == false) {
-      looping = !looping;
-      if (looping) {
+      if (!looping && queue.loop == false) { // activate looping
+        looping = true;
         player.setReleaseMode(ReleaseMode.loop);
-      } else {
+      } else { // disable looping
+        looping = false;
         player.setReleaseMode(ReleaseMode.release);
+        queue.loop = !queue.loop;
       }
     }
   }
 
+  bool init = true;
   @override
   Widget build(BuildContext context) {
+    if (init && widget.playing == true) {
+      togglePlaying(context, override: true);
+      init = false;
+    }
     if (widget.file == current) localplaying = playing;
     String filename = basename(widget.file.path);
     return WillPopScope(
@@ -212,7 +227,7 @@ class _PlayerState extends State<Player> {
                   ),
                   GestureDetector(
                     onTapUp: (details) => setState(() {
-                      togglePlaying();
+                      togglePlaying(context);
                     }),
                     onVerticalDragStart:(details) => setState(()=> draggingVolume = true),
                     onVerticalDragUpdate: (details) {
@@ -342,12 +357,12 @@ class _PlayerState extends State<Player> {
                         image: (localplaying == false || ended == true) ? "play.png" : "pause.png",
                         color: Theme.of(context).colorScheme.onBackground,
                         pressUp: () => setState(() {
-                          togglePlaying();
+                          togglePlaying(context);
                         }),
                       ),
                       ImageButton(
                         image: "repeat.png",
-                        color: looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                        color: queue.loop ? Theme.of(context).colorScheme.inversePrimary : looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
                         pressUp: () => setState(() => toggleLooping()),
                       )
                     ],

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../main.dart';
 
 import '../player.dart' as player;
 
@@ -87,11 +86,6 @@ class _SongTileState extends State<SongTile> {
           await Navigator.push(context, MaterialPageRoute(builder: (context) {
             return player.Player(file: widget.element);
           }));
-          if (player.current != null) {
-            player.player.onPlayerComplete.listen((event) {
-              if (mounted && player.looping == false) setState(() => player.current = null);
-            });
-          }
         },
       ),
     );

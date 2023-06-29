@@ -23,6 +23,25 @@ bool removeFromQueue(FileSystemEntity file) {
   return queueList.remove(file);
 }
 
+void queueSongEnd(BuildContext context) {
+  if (queueList.contains(player.current) && loop) {
+
+    int index = queueList.indexOf(player.current) + 1;
+    if (index >= queueList.length) index = 0;
+
+    FileSystemEntity next = queueList[index];
+
+    Navigator.pop(context);
+    Navigator.push(context, MaterialPageRoute(builder: (ctx) {
+      return player.Player(file: next, playing: true);
+    }));
+
+    if (context.mounted) return;
+
+    print("play next song!");
+  }
+}
+
 Widget queueDialog(BuildContext context, FileSystemEntity file) {
   var contains = queueList.contains(file);
   return AlertDialog(
