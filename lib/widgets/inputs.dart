@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../main.dart';
 
 import '../player.dart' as player;
 
