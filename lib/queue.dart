@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 import 'widgets/inputs.dart';
 import 'player.dart' as player;
@@ -30,15 +31,32 @@ void queueSongEnd(BuildContext context) {
     if (index >= queueList.length) index = 0;
 
     FileSystemEntity next = queueList[index];
+    
+    if (context.mounted) {
+      Navigator.pop(context);
+      Navigator.push(context, MaterialPageRoute(builder: (ctx) {
+        return player.Player(file: next);
+      }));
+      return;
+    }
+    
+    player.playing = true;
+    player.player.audioCache.clearAll();
 
-    Navigator.pop(context);
-    Navigator.push(context, MaterialPageRoute(builder: (ctx) {
-      return player.Player(file: next, playing: true);
-    }));
-
-    if (context.mounted) return;
-
-    print("play next song!");
+    player.player.stop();
+    player.player.play(DeviceFileSource(next.path));
+    
+    player.onComplete = player.player.onPlayerComplete.listen((event) {
+      queueSongEnd(context);
+      if (loop == false) {
+        player.playing = false;
+        player.current = null;
+      }
+      player.onPlayerUpdateController.add(null);
+    });
+    
+    player.current = next;
+    player.onPlayerUpdateController.add(null);
   }
 }
 

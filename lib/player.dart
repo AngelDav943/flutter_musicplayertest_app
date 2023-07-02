@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_typing_uninitialized_variables
+// ignore_for_file: prefer_typing_uninitialized_variables, avoid_print
 
 import 'dart:async';
 import 'dart:io';
@@ -25,20 +25,20 @@ class Player extends StatefulWidget {
 
 AudioPlayer player = AudioPlayer();
 
-StreamController _onPlayerUpdateController = StreamController.broadcast();
-Stream onPlayerUpdate = _onPlayerUpdateController.stream;
+StreamController onPlayerUpdateController = StreamController.broadcast();
+Stream onPlayerUpdate = onPlayerUpdateController.stream;
 var current;
 
 double volume = 1.0;
 bool looping = false;
 bool playing = false;
+var onComplete;
 
 class _PlayerState extends State<Player> {
 
   late AudioSession session;
 
   var onPosChanged;
-  var onComplete;
   var onNoisyEvent;
 
   bool loaded = false;
@@ -111,8 +111,12 @@ class _PlayerState extends State<Player> {
     if (ended == true || current == null) {
       ended = false;
       current = widget.file;
-      _onPlayerUpdateController.add(null);
-      player.play(DeviceFileSource(widget.file.path));
+      onPlayerUpdateController.add(null);
+
+      player.play(
+        DeviceFileSource(widget.file.path),
+        mode: PlayerMode.mediaPlayer,
+      );
       
       if (playing == false) player.pause();
     }
@@ -125,13 +129,18 @@ class _PlayerState extends State<Player> {
     bool status = !playing;
     if (override != null) status = override;
 
+    try {
     if ((current != widget.file || player.source == null) && localplaying == false) {
+      ended = false;
       playing = true;
       localplaying = true;
-      player.audioCache.clearAll();
-      await player.stop();
-      
-      await player.play(DeviceFileSource(widget.file.path));
+
+      loaded = false;
+      await player.play(
+        DeviceFileSource(widget.file.path),
+        mode: PlayerMode.mediaPlayer,
+      );
+      loaded = true;
 
       player.getDuration().then((value) => songDuration = value!);
       player.getCurrentPosition().then((value) => songPosition = value!);
@@ -142,12 +151,15 @@ class _PlayerState extends State<Player> {
           playing = false;
           current = null;
         }
-        _onPlayerUpdateController.add(null);
+        onPlayerUpdateController.add(null);
         if (mounted) setState(() => ended = true);
       });
       current = widget.file;
-      _onPlayerUpdateController.add(null);
+      onPlayerUpdateController.add(null);
       return;
+    }
+    } catch (e) {
+      print("!!ERROR: $e");
     }
 
     if (ended == true && looping == false) {
@@ -165,7 +177,7 @@ class _PlayerState extends State<Player> {
     }
 
     if (widget.file == current) localplaying = playing;
-    _onPlayerUpdateController.add(null);
+    onPlayerUpdateController.add(null);
   }
 
   void toggleLooping() {
