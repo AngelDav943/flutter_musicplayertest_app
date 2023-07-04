@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 import 'widgets/inputs.dart';
 import 'player.dart' as player;
@@ -21,6 +22,23 @@ bool addToQueue(FileSystemEntity file) {
 
 bool removeFromQueue(FileSystemEntity file) {
   return queueList.remove(file);
+}
+
+void queueSongEnd() {
+  if (queueList.contains(player.current) && loop) {
+    int index = queueList.indexOf(player.current) + 1;
+    
+    if (index >= queueList.length) index = 0;
+
+    FileSystemEntity next = queueList[index];
+    
+    player.playing = true;
+    player.player.play(DeviceFileSource(next.path));
+    player.display = next;
+    player.current = next;
+    
+    player.onPlayerUpdateController.add(null);
+  }
 }
 
 Widget queueDialog(BuildContext context, FileSystemEntity file) {

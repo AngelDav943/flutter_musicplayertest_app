@@ -24,20 +24,43 @@ class Player extends StatefulWidget {
 
 AudioPlayer player = AudioPlayer();
 
-StreamController _onPlayerUpdateController = StreamController.broadcast();
-Stream onPlayerUpdate = _onPlayerUpdateController.stream;
+StreamController onPlayerUpdateController = StreamController.broadcast();
+Stream onPlayerUpdate = onPlayerUpdateController.stream;
+
+var display;
 var current;
 
 double volume = 1.0;
 bool looping = false;
 bool playing = false;
+var onComplete;
+
+void playSong(FileSystemEntity file) async {
+  playing = true;
+  
+  await player.play(
+    DeviceFileSource(file.path),
+    mode: PlayerMode.mediaPlayer,
+  );
+  
+  onComplete = player.onPlayerComplete.listen((event) {
+    queue.queueSongEnd();
+    if (queue.loop == false) {
+      playing = false;
+      current = null;
+    }
+    onPlayerUpdateController.add(null);
+  });
+  current = file;
+  onPlayerUpdateController.add(null);
+}
 
 class _PlayerState extends State<Player> {
 
   late AudioSession session;
 
   var onPosChanged;
-  var onComplete;
+  var onPlayerNoise;
   var onNoisyEvent;
 
   bool loaded = false;
@@ -49,14 +72,15 @@ class _PlayerState extends State<Player> {
 
   @override
   void initState() {
+    display = widget.file;
     initPlayer();
     super.initState();
   }
 
-
   @override
   void dispose() {
     if (onPosChanged != null) onPosChanged.cancel();
+    if (onPlayerNoise != null) onPlayerNoise.cancel();
     super.dispose();
   }
 
@@ -65,16 +89,24 @@ class _PlayerState extends State<Player> {
       await session.configure(const AudioSessionConfiguration.music());
       handleInterruptions(session);
     });
-    loaded = true;
     
-    if (widget.file != current) return;
     getPositions();
+    loaded = true;
+  }
+
+  Future<Duration> getDuration(FileSystemEntity file) async {
+    AudioPlayer displayPlayer = AudioPlayer();
+    await displayPlayer.setSource(DeviceFileSource(file.path));
+    var duration = (await displayPlayer.getDuration())!;
+    return duration;
   }
 
   void getPositions() async {
-    var position = (await player.getCurrentPosition())!;
-    var duration = (await player.getDuration())!;
-    setState((){
+    var position = Duration.zero;
+    var duration = await getDuration(display);
+
+    if (display == current) position = (await player.getCurrentPosition())!;
+    setState(() {
       songPosition = position;
       songDuration = duration;
     });
@@ -93,6 +125,12 @@ class _PlayerState extends State<Player> {
         });
       }
     });
+
+    session.interruptionEventStream.listen((event) {
+      if (event.begin) {
+        togglePlaying(null, override: false);
+      }
+    });
   }
 
   String formatTime(int seconds) {
@@ -104,9 +142,13 @@ class _PlayerState extends State<Player> {
   void seekToMillisecond(int milliseconds) {
     if (ended == true || current == null) {
       ended = false;
-      current = widget.file;
-      _onPlayerUpdateController.add(null);
-      player.play(DeviceFileSource(widget.file.path));
+      current = display;
+      onPlayerUpdateController.add(null);
+
+      player.play(
+        DeviceFileSource(display.path),
+        mode: PlayerMode.mediaPlayer,
+      );
       
       if (playing == false) player.pause();
     }
@@ -115,35 +157,18 @@ class _PlayerState extends State<Player> {
   }
   bool draggingVolume = false;
 
-  void togglePlaying({override}) async {
+  void togglePlaying(context, {override}) async {
     bool status = !playing;
     if (override != null) status = override;
 
-    if (current != widget.file && localplaying == false) {
-      playing = true;
+    if ((current != display || player.source == null) && localplaying == false) {
       localplaying = true;
-      player.audioCache.clearAll();
-      await player.stop();
-      
-      await player.play(DeviceFileSource(widget.file.path));
-
-      player.getDuration().then((value) => songDuration = value!);
-      player.getCurrentPosition().then((value) => songPosition = value!);
-      
-      onComplete = player.onPlayerComplete.listen((event) {
-        playing = false;
-        _onPlayerUpdateController.add(null);
-        current = null;
-        if (mounted) setState(() => ended = true);
-      });
-
-      current = widget.file;
-      _onPlayerUpdateController.add(null);
+      playSong(display);
       return;
     }
 
     if (ended == true && looping == false) {
-      player.play(DeviceFileSource(widget.file.path));
+      player.play(DeviceFileSource(display.path));
       playing = true;
       ended = false;
       return;
@@ -156,25 +181,28 @@ class _PlayerState extends State<Player> {
       player.pause();
     }
 
-    if (widget.file == current) localplaying = playing;
-    _onPlayerUpdateController.add(null);
+    if (display == current) localplaying = playing;
+    onPlayerUpdateController.add(null);
   }
 
   void toggleLooping() {
     if (ended == false) {
-      looping = !looping;
-      if (looping) {
+      if (!looping && queue.loop == false) { // activate looping
+        looping = true;
         player.setReleaseMode(ReleaseMode.loop);
-      } else {
+      } else { // disable looping
+        looping = false;
         player.setReleaseMode(ReleaseMode.release);
+        queue.loop = !queue.loop;
       }
     }
   }
-
+  
   @override
   Widget build(BuildContext context) {
-    if (widget.file == current) localplaying = playing;
-    String filename = basename(widget.file.path);
+    if (display == current) localplaying = playing;
+    String filename = basename(display.path);
+
     return WillPopScope(
       onWillPop: () async {
         Navigator.pop(context, false);
@@ -212,7 +240,7 @@ class _PlayerState extends State<Player> {
                   ),
                   GestureDetector(
                     onTapUp: (details) => setState(() {
-                      togglePlaying();
+                      togglePlaying(context);
                     }),
                     onVerticalDragStart:(details) => setState(()=> draggingVolume = true),
                     onVerticalDragUpdate: (details) {
@@ -291,7 +319,7 @@ class _PlayerState extends State<Player> {
                     builder: (BuildContext ctx, StateSetter setSliderState) {
                       
                       onPosChanged = player.onPositionChanged.listen((newPosition) {
-                        if (mounted && widget.file == current) {
+                        if (ctx.mounted && display == current) {
                           setSliderState(() {
                             songPosition = newPosition;
                           });
@@ -329,11 +357,11 @@ class _PlayerState extends State<Player> {
                     children: [
                       ImageButton(
                         image: "songqueue.png",
-                        color: queue.queueList.contains(widget.file) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                        color: queue.queueList.contains(display) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
                         pressUp: () async {
                           await showDialog(
                             context: context,
-                            builder: (context) => queue.queueDialog(context, widget.file)
+                            builder: (context) => queue.queueDialog(context, display)
                           );
                           setState(() {});
                         },
@@ -342,12 +370,12 @@ class _PlayerState extends State<Player> {
                         image: (localplaying == false || ended == true) ? "play.png" : "pause.png",
                         color: Theme.of(context).colorScheme.onBackground,
                         pressUp: () => setState(() {
-                          togglePlaying();
+                          togglePlaying(context);
                         }),
                       ),
                       ImageButton(
                         image: "repeat.png",
-                        color: looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                        color: queue.loop ? Theme.of(context).colorScheme.inversePrimary : looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
                         pressUp: () => setState(() => toggleLooping()),
                       )
                     ],
