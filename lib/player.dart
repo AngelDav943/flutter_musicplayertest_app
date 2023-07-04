@@ -27,6 +27,8 @@ AudioPlayer player = AudioPlayer();
 
 StreamController onPlayerUpdateController = StreamController.broadcast();
 Stream onPlayerUpdate = onPlayerUpdateController.stream;
+
+var display;
 var current;
 
 double volume = 1.0;
@@ -34,11 +36,33 @@ bool looping = false;
 bool playing = false;
 var onComplete;
 
+void playSong(FileSystemEntity file) async {
+  playing = true;
+  
+  await player.play(
+    DeviceFileSource(file.path),
+    mode: PlayerMode.mediaPlayer,
+  );
+  
+  onComplete = player.onPlayerComplete.listen((event) {
+    print("firing");
+    queue.queueSongEnd();
+    if (queue.loop == false) {
+      playing = false;
+      current = null;
+    }
+    onPlayerUpdateController.add(null);
+  });
+  current = file;
+  onPlayerUpdateController.add(null);
+}
+
 class _PlayerState extends State<Player> {
 
   late AudioSession session;
 
   var onPosChanged;
+  var onPlayerNoise;
   var onNoisyEvent;
 
   bool loaded = false;
@@ -50,6 +74,7 @@ class _PlayerState extends State<Player> {
 
   @override
   void initState() {
+    display = widget.file;
     initPlayer();
     super.initState();
   }
@@ -57,6 +82,7 @@ class _PlayerState extends State<Player> {
   @override
   void dispose() {
     if (onPosChanged != null) onPosChanged.cancel();
+    if (onPlayerNoise != null) onPlayerNoise.cancel();
     super.dispose();
   }
 
@@ -65,19 +91,23 @@ class _PlayerState extends State<Player> {
       await session.configure(const AudioSessionConfiguration.music());
       handleInterruptions(session);
     });
+
+    onPlayerNoise = onPlayerUpdate.listen((event) => setState(() {
+      getPositions();
+    }));
     loaded = true;
-    
-    if (widget.file != current) return;
-    getPositions();
+     
+    if (display != current && current != null) return;
+    setState(() {
+      getPositions();
+    });
   }
 
   void getPositions() async {
     var position = (await player.getCurrentPosition())!;
     var duration = (await player.getDuration())!;
-    setState((){
-      songPosition = position;
-      songDuration = duration;
-    });
+    songPosition = position;
+    songDuration = duration;
   }
 
   void handleInterruptions(AudioSession session) {
@@ -110,11 +140,11 @@ class _PlayerState extends State<Player> {
   void seekToMillisecond(int milliseconds) {
     if (ended == true || current == null) {
       ended = false;
-      current = widget.file;
+      current = display;
       onPlayerUpdateController.add(null);
 
       player.play(
-        DeviceFileSource(widget.file.path),
+        DeviceFileSource(display.path),
         mode: PlayerMode.mediaPlayer,
       );
       
@@ -129,41 +159,14 @@ class _PlayerState extends State<Player> {
     bool status = !playing;
     if (override != null) status = override;
 
-    try {
-    if ((current != widget.file || player.source == null) && localplaying == false) {
-      ended = false;
-      playing = true;
+    if ((current != display || player.source == null) && localplaying == false) {
       localplaying = true;
-
-      loaded = false;
-      await player.play(
-        DeviceFileSource(widget.file.path),
-        mode: PlayerMode.mediaPlayer,
-      );
-      loaded = true;
-
-      player.getDuration().then((value) => songDuration = value!);
-      player.getCurrentPosition().then((value) => songPosition = value!);
-      
-      onComplete = player.onPlayerComplete.listen((event) {
-        if (context != null) queue.queueSongEnd(context);
-        if (queue.loop == false) {
-          playing = false;
-          current = null;
-        }
-        onPlayerUpdateController.add(null);
-        if (mounted) setState(() => ended = true);
-      });
-      current = widget.file;
-      onPlayerUpdateController.add(null);
+      playSong(display);
       return;
-    }
-    } catch (e) {
-      print("!!ERROR: $e");
     }
 
     if (ended == true && looping == false) {
-      player.play(DeviceFileSource(widget.file.path));
+      player.play(DeviceFileSource(display.path));
       playing = true;
       ended = false;
       return;
@@ -176,7 +179,7 @@ class _PlayerState extends State<Player> {
       player.pause();
     }
 
-    if (widget.file == current) localplaying = playing;
+    if (display == current) localplaying = playing;
     onPlayerUpdateController.add(null);
   }
 
@@ -200,8 +203,8 @@ class _PlayerState extends State<Player> {
       togglePlaying(context, override: true);
       init = false;
     }
-    if (widget.file == current) localplaying = playing;
-    String filename = basename(widget.file.path);
+    if (display == current) localplaying = playing;
+    String filename = basename(display.path);
     return WillPopScope(
       onWillPop: () async {
         Navigator.pop(context, false);
@@ -318,7 +321,7 @@ class _PlayerState extends State<Player> {
                     builder: (BuildContext ctx, StateSetter setSliderState) {
                       
                       onPosChanged = player.onPositionChanged.listen((newPosition) {
-                        if (mounted && widget.file == current) {
+                        if (ctx.mounted && display == current) {
                           setSliderState(() {
                             songPosition = newPosition;
                           });
@@ -356,11 +359,11 @@ class _PlayerState extends State<Player> {
                     children: [
                       ImageButton(
                         image: "songqueue.png",
-                        color: queue.queueList.contains(widget.file) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                        color: queue.queueList.contains(display) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
                         pressUp: () async {
                           await showDialog(
                             context: context,
-                            builder: (context) => queue.queueDialog(context, widget.file)
+                            builder: (context) => queue.queueDialog(context, display)
                           );
                           setState(() {});
                         },
