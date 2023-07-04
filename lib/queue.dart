@@ -25,7 +25,7 @@ bool removeFromQueue(FileSystemEntity file) {
 }
 
 void queueSongEnd() {
-  if (queueList.contains(player.current) && loop) {
+  if (queueList.contains(player.current) && loop && queueList.isNotEmpty) {
     int index = queueList.indexOf(player.current) + 1;
     
     if (index >= queueList.length) index = 0;

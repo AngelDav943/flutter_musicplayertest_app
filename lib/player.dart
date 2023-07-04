@@ -193,7 +193,11 @@ class _PlayerState extends State<Player> {
       } else { // disable looping
         looping = false;
         player.setReleaseMode(ReleaseMode.release);
-        queue.loop = !queue.loop;
+        if (queue.queueList.isNotEmpty) {
+          queue.loop = !queue.loop;
+        } else {
+          queue.loop = false;
+        }
       }
     }
   }
