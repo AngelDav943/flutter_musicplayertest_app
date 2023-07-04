@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_typing_uninitialized_variables, avoid_print
+// ignore_for_file: prefer_typing_uninitialized_variables
 
 import 'dart:async';
 import 'dart:io';
@@ -14,10 +14,9 @@ import 'widgets/inputs.dart';
 import 'queue.dart' as queue;
 
 class Player extends StatefulWidget {
-  const Player({super.key, required this.file, this.playing = false});
+  const Player({super.key, required this.file});
 
   final FileSystemEntity file;
-  final bool playing;
 
   @override
   State<Player> createState() => _PlayerState();
@@ -45,7 +44,6 @@ void playSong(FileSystemEntity file) async {
   );
   
   onComplete = player.onPlayerComplete.listen((event) {
-    print("firing");
     queue.queueSongEnd();
     if (queue.loop == false) {
       playing = false;
@@ -91,23 +89,27 @@ class _PlayerState extends State<Player> {
       await session.configure(const AudioSessionConfiguration.music());
       handleInterruptions(session);
     });
-
-    onPlayerNoise = onPlayerUpdate.listen((event) => setState(() {
-      getPositions();
-    }));
+    
+    getPositions();
     loaded = true;
-     
-    if (display != current && current != null) return;
-    setState(() {
-      getPositions();
-    });
+  }
+
+  Future<Duration> getDuration(FileSystemEntity file) async {
+    AudioPlayer displayPlayer = AudioPlayer();
+    await displayPlayer.setSource(DeviceFileSource(file.path));
+    var duration = (await displayPlayer.getDuration())!;
+    return duration;
   }
 
   void getPositions() async {
-    var position = (await player.getCurrentPosition())!;
-    var duration = (await player.getDuration())!;
-    songPosition = position;
-    songDuration = duration;
+    var position = Duration.zero;
+    var duration = await getDuration(display);
+
+    if (display == current) position = (await player.getCurrentPosition())!;
+    setState(() {
+      songPosition = position;
+      songDuration = duration;
+    });
   }
 
   void handleInterruptions(AudioSession session) {
@@ -195,16 +197,12 @@ class _PlayerState extends State<Player> {
       }
     }
   }
-
-  bool init = true;
+  
   @override
   Widget build(BuildContext context) {
-    if (init && widget.playing == true) {
-      togglePlaying(context, override: true);
-      init = false;
-    }
     if (display == current) localplaying = playing;
     String filename = basename(display.path);
+
     return WillPopScope(
       onWillPop: () async {
         Navigator.pop(context, false);

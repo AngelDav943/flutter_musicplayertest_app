@@ -24,38 +24,19 @@ bool removeFromQueue(FileSystemEntity file) {
   return queueList.remove(file);
 }
 
-void queueSongEnd(/*BuildContext context*/) {
+void queueSongEnd() {
   if (queueList.contains(player.current) && loop) {
     int index = queueList.indexOf(player.current) + 1;
-    print("last: ${queueList.indexOf(player.current)}, newindex: $index");
     
     if (index >= queueList.length) index = 0;
 
     FileSystemEntity next = queueList[index];
     
-    /*if (context.mounted) {
-      Navigator.pop(context);
-      Navigator.push(context, MaterialPageRoute(builder: (ctx) {
-        return player.Player(file: next, playing: true,);
-      }));
-      return;
-    }*/
     player.playing = true;
     player.player.play(DeviceFileSource(next.path));
-    
-    if (player.onComplete != null) player.onComplete.cancel();
-    player.onComplete = player.player.onPlayerComplete.listen((event) {
-      print("firing inside queue");
-      queueSongEnd();
-      if (loop == false) {
-        player.playing = false;
-        player.current = null;
-      }
-      player.onPlayerUpdateController.add(null);
-    });
-    
     player.display = next;
     player.current = next;
+    
     player.onPlayerUpdateController.add(null);
   }
 }
