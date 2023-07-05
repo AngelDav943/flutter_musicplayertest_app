@@ -32,9 +32,8 @@ void queueSongEnd() {
 
     FileSystemEntity next = queueList[index];
     
-    player.playing = true;
-    player.player.play(DeviceFileSource(next.path));
-    player.display = next;
+    player.playSong(next);
+    if (player.current == player.display) player.display = next;
     player.current = next;
     
     player.onPlayerUpdateController.add(null);

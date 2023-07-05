@@ -43,6 +43,7 @@ void playSong(FileSystemEntity file) async {
     mode: PlayerMode.mediaPlayer,
   );
   
+  if (onComplete != null) onComplete.cancel();
   onComplete = player.onPlayerComplete.listen((event) {
     queue.queueSongEnd();
     if (queue.loop == false) {
@@ -119,11 +120,13 @@ class _PlayerState extends State<Player> {
 
     session.devicesChangedEventStream.listen((event) {
       if (event.devicesRemoved.isNotEmpty) player.pause();
+      playing = false;
       if (mounted) {
         setState(() {
           playing = false;
         });
       }
+      onPlayerUpdateController.add(null);
     });
 
     session.interruptionEventStream.listen((event) {
@@ -140,20 +143,22 @@ class _PlayerState extends State<Player> {
   }
 
   void seekToMillisecond(int milliseconds) {
+    Duration newDuration = Duration(milliseconds: milliseconds);
     if (ended == true || current == null) {
       ended = false;
       current = display;
+      localplaying = playing;
       onPlayerUpdateController.add(null);
 
       player.play(
         DeviceFileSource(display.path),
         mode: PlayerMode.mediaPlayer,
+        position: songPosition,
       );
       
       if (playing == false) player.pause();
     }
-    Duration newDuration = Duration(milliseconds: milliseconds);
-    player.seek(newDuration);
+    if (display == current) player.seek(newDuration);
   }
   bool draggingVolume = false;
 
@@ -168,9 +173,7 @@ class _PlayerState extends State<Player> {
     }
 
     if (ended == true && looping == false) {
-      player.play(DeviceFileSource(display.path));
-      playing = true;
-      ended = false;
+      playSong(display);
       return;
     }
 
