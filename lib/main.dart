@@ -122,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             ImageButton(
-              image: "note.png",
+              image: "note2.png",
               color: indexPage == 0 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
               width: 40, height: 40,
               pressUp: () => setState( () => indexPage = 0),

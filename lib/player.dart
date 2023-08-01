@@ -289,7 +289,7 @@ class _PlayerState extends State<Player> {
                         alignment: AlignmentDirectional.center,
                         children: [
                           Image.asset(
-                            'assets/note.png',
+                            'assets/note2.png',
                             height: 125 * max(volume, 0.7),
                             width: 125 * max(volume, 0.7),
                             fit: BoxFit.cover,
