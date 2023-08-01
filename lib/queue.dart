@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 
 import 'widgets/inputs.dart';
 import 'player.dart' as player;
@@ -27,15 +26,15 @@ bool removeFromQueue(FileSystemEntity file) {
 void queueSongEnd() {
   if (queueList.contains(player.current) && loop && queueList.isNotEmpty) {
     int index = queueList.indexOf(player.current) + 1;
-    
+
     if (index >= queueList.length) index = 0;
 
     FileSystemEntity next = queueList[index];
-    
+
     player.playSong(next);
     if (player.current == player.display) player.display = next;
     player.current = next;
-    
+
     player.onPlayerUpdateController.add(null);
   }
 }
