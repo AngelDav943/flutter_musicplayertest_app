@@ -19,24 +19,16 @@ class _HomeListState extends State<HomeList> {
 
   @override
   Widget build(BuildContext context) {
-
-    List<Widget> getElements() {
-      List<Widget> elements = [];
-      for (var element in widget.files) {
-        String filename = basename(element.path);
-        bool selected = (element == player.current);
-        elements.add(SongTile(selected: selected, element: element, filename: filename));
-      }
-      return elements;
-    }
-
     return Center(
       child: FractionallySizedBox(
         widthFactor: 0.95,
-        child: ListView(
-          padding: const EdgeInsets.only(top: 20),
-          children: widget.files.isEmpty ? [const ListTile(title: Text("No files found"))] : getElements()
-        ),
+        child: ListView.builder(
+          itemCount: widget.files.length,
+          itemBuilder: (context, index) {
+            FileSystemEntity element = widget.files[index];
+            return SongTile(selected: (element == player.current), element: element, filename: basename(element.path));
+          }
+        )
       )
     );
   }

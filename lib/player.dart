@@ -322,7 +322,7 @@ class _PlayerState extends State<Player> {
                       fontWeight: FontWeight.bold
                     )
                   ),
-                  StatefulBuilder(
+                  StatefulBuilder( // Time scroll
                     builder: (BuildContext ctx, StateSetter setSliderState) {
                       
                       onPosChanged = player.onPositionChanged.listen((newPosition) {
@@ -359,33 +359,38 @@ class _PlayerState extends State<Player> {
                       );
                     }
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ImageButton(
-                        image: "songqueue.png",
-                        color: queue.queueList.contains(display) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
-                        pressUp: () async {
-                          await showDialog(
-                            context: context,
-                            builder: (context) => queue.queueDialog(context, display)
-                          );
-                          setState(() {});
-                        },
-                      ),
-                      ImageButton(
-                        image: (localplaying == false || ended == true) ? "play.png" : "pause.png",
-                        color: Theme.of(context).colorScheme.onBackground,
-                        pressUp: () => setState(() {
-                          togglePlaying(context);
-                        }),
-                      ),
-                      ImageButton(
-                        image: "repeat.png",
-                        color: queue.loop ? Theme.of(context).colorScheme.inversePrimary : looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
-                        pressUp: () => setState(() => toggleLooping()),
-                      )
-                    ],
+                  StatefulBuilder( // Buttons
+                    builder: (BuildContext ctx, StateSetter setSliderState) {
+
+                      return Row( // Buttons
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ImageButton(
+                            image: "songqueue.png",
+                            color: queue.queueList.contains(display) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                            pressUp: () async {
+                              await showDialog(
+                                context: context,
+                                builder: (context) => queue.queueDialog(context, display)
+                              );
+                              setState(() {});
+                            },
+                          ),
+                          ImageButton(
+                            image: (localplaying == false || ended == true) ? "play.png" : "pause.png",
+                            color: Theme.of(context).colorScheme.onBackground,
+                            pressUp: () => setState(() {
+                              togglePlaying(context);
+                            }),
+                          ),
+                          ImageButton(
+                            image: "repeat.png",
+                            color: queue.loop ? Theme.of(context).colorScheme.inversePrimary : looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                            pressUp: () => setState(() => toggleLooping()),
+                          )
+                        ],
+                      );
+                    }
                   ),
                   const SizedBox(
                     height: 40,
