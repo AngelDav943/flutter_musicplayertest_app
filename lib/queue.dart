@@ -116,7 +116,10 @@ class _QueueState extends State<Queue> {
           padding: const EdgeInsets.only(top: 20),
           children: getElements()
         ),
-      ) : Image.asset('assets/songqueue.png')
+      ) : Image.asset(
+        'assets/songqueue.png',
+        width: MediaQuery.of(context).size.width,
+      )
     );
   }
 }

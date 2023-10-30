@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path/path.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter_background/flutter_background.dart';
 
 import 'widgets/inputs.dart';
 import 'queue.dart' as queue;
@@ -42,6 +43,8 @@ void playSong(FileSystemEntity file) async {
     DeviceFileSource(file.path),
     mode: PlayerMode.mediaPlayer,
   );
+
+  FlutterBackground.enableBackgroundExecution();
   
   if (onComplete != null) onComplete.cancel();
   onComplete = player.onPlayerComplete.listen((event) {
@@ -50,6 +53,7 @@ void playSong(FileSystemEntity file) async {
       playing = false;
       current = null;
     }
+    FlutterBackground.disableBackgroundExecution();
     onPlayerUpdateController.add(null);
   });
   current = file;
@@ -210,6 +214,9 @@ class _PlayerState extends State<Player> {
     if (display == current) localplaying = playing;
     String filename = basename(display.path);
 
+    double screenWidth = MediaQuery.of(context).size.width;
+    double squareSize = screenWidth/1.5;
+
     return WillPopScope(
       onWillPop: () async {
         Navigator.pop(context, false);
@@ -236,10 +243,12 @@ class _PlayerState extends State<Player> {
                 children: [
                   Container(
                     alignment: Alignment.centerLeft,
-                    margin: const EdgeInsets.only(top: 40, bottom: 10),
+                    margin: const EdgeInsets.only(top: kToolbarHeight/1.5, bottom: 10),
                     child: ImageButton(
                       image: "back.png",
                       color: Theme.of(context).colorScheme.onBackground,
+                      height: screenWidth / 5,
+                      width: screenWidth / 5,
                       pressUp: () {
                         Navigator.pop(context, true);
                       },
@@ -260,8 +269,8 @@ class _PlayerState extends State<Player> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 600),
                       curve: Curves.easeInOut,
-                      height: 250,
-                      width: 250,
+                      height: squareSize, // original 250px
+                      width: squareSize, // 250
                       decoration: BoxDecoration(
                         gradient: RadialGradient(
                           radius: 1.2 * clampDouble(-volume * (volume - 2), 0.2, 1),
@@ -290,8 +299,8 @@ class _PlayerState extends State<Player> {
                         children: [
                           Image.asset(
                             'assets/note2.png',
-                            height: 125 * max(volume, 0.7),
-                            width: 125 * max(volume, 0.7),
+                            height: (squareSize/2) * max(volume, 0.7), // original 125px
+                            width: (squareSize/2) * max(volume, 0.7), // 125
                             fit: BoxFit.cover,
                             color: Theme.of(context).colorScheme.onPrimary.withOpacity(max(0.1, volume)),
                           ),
@@ -301,8 +310,8 @@ class _PlayerState extends State<Player> {
                                 color: Color.fromARGB(76, 0, 0, 0),
                                 borderRadius: BorderRadius.all(Radius.circular(15))
                               ),
-                              width: 30,
-                              height: 150,
+                              width: 35, // original 35px
+                              height: squareSize * 0.6, // original 150px
                               padding: const EdgeInsets.all(10),
                               child: RotatedBox(
                                 quarterTurns: -1,
@@ -314,12 +323,13 @@ class _PlayerState extends State<Player> {
                       )
                     ),
                   ),
-                  Text(
+                  Text( // Song title
                     filename,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onBackground,
-                      fontWeight: FontWeight.bold
+                      fontWeight: FontWeight.w700,
+                      fontSize: screenWidth / 20,
                     )
                   ),
                   StatefulBuilder( // Time scroll
@@ -340,7 +350,7 @@ class _PlayerState extends State<Player> {
                             child: SliderTheme(
                               data: SliderThemeData(
                                 trackShape: const RectangularSliderTrackShape(),
-                                trackHeight: 20,
+                                trackHeight: 25,
                                 thumbShape: SliderComponentShape.noThumb
                               ), 
                               child: Slider(
@@ -368,6 +378,7 @@ class _PlayerState extends State<Player> {
                           ImageButton(
                             image: "songqueue.png",
                             color: queue.queueList.contains(display) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                            width: screenWidth / 5,
                             pressUp: () async {
                               await showDialog(
                                 context: context,
@@ -379,6 +390,7 @@ class _PlayerState extends State<Player> {
                           ImageButton(
                             image: (localplaying == false || ended == true) ? "play.png" : "pause.png",
                             color: Theme.of(context).colorScheme.onBackground,
+                            width: screenWidth / 5,
                             pressUp: () => setState(() {
                               togglePlaying(context);
                             }),
@@ -386,6 +398,7 @@ class _PlayerState extends State<Player> {
                           ImageButton(
                             image: "repeat.png",
                             color: queue.loop ? Theme.of(context).colorScheme.inversePrimary : looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                            width: screenWidth / 5,
                             pressUp: () => setState(() => toggleLooping()),
                           )
                         ],

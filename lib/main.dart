@@ -1,8 +1,11 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:flutter_background/flutter_background.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'widgets/inputs.dart';
 
@@ -20,9 +23,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: "Angel's Music Player",
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        fontFamily: "ComicNeue",
         useMaterial3: true,
         colorScheme: const ColorScheme(
           brightness: Brightness.light,
@@ -40,6 +44,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       darkTheme: ThemeData(
+        fontFamily: "ComicNeue",
         useMaterial3: true,
         colorScheme: const ColorScheme(
           brightness: Brightness.dark,
@@ -70,6 +75,17 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+void onDidReceiveNotificationResponse(NotificationResponse notificationResponse) async {
+    final String? payload = notificationResponse.payload;
+    if (notificationResponse.payload != null) {
+      debugPrint('notification payload: $payload');
+    }
+    /*await Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (context) => SecondScreen(payload)),
+    );*/
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   late List<FileSystemEntity> files = [];
   var indexPage = 0;
@@ -78,8 +94,8 @@ class _MyHomePageState extends State<MyHomePage> {
   );
 
   void getMusicFiles() async {
-    var status = await Permission.storage.status;
-    if (!status.isGranted) await Permission.storage.request();
+    var status = await Permission.manageExternalStorage.status;
+    if (!status.isGranted) await Permission.manageExternalStorage.request();
 
     Directory musicDir = Directory('/storage/emulated/0/Music');
     final List<FileSystemEntity> songs = await musicDir.list().toList();
@@ -89,9 +105,42 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void startBackgroundService() async {
+    const androidConfig = FlutterBackgroundAndroidConfig(
+      notificationTitle: "Music player",
+      notificationText: "",
+      notificationImportance: AndroidNotificationImportance.Default,
+      notificationIcon: AndroidResource(name: 'background_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
+    );
+    await FlutterBackground.initialize(androidConfig: androidConfig);
+  }
+
   @override
   void initState() {
     getMusicFiles();
+    startBackgroundService();
+
+    // TODO: NOTIFICATIONS
+    /*
+    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    // initialise the plugin. app_icon needs to be a added as a drawable resource to the Android head project
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
+
+    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    flutterLocalNotificationsPlugin.initialize(initializationSettings, onDidReceiveNotificationResponse: onDidReceiveNotificationResponse);
+
+    const AndroidNotificationDetails androidNotificationDetails = AndroidNotificationDetails(
+      'your channel id', 'your channel name',
+      channelDescription: 'your channel description',
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
+      ticker: 'ticker'
+    );
+
+    const NotificationDetails notificationDetails = NotificationDetails(android: androidNotificationDetails);
+    flutterLocalNotificationsPlugin.show(0, 'plain title', 'plain body', notificationDetails, payload: 'item x');
+    */
+
     player.onPlayerUpdate.listen((event) => {
       if (mounted) setState(() {})
     });
@@ -110,13 +159,15 @@ class _MyHomePageState extends State<MyHomePage> {
         currentPage = Queue();
         break;
     }
+    
+    double screenWidth = MediaQuery.of(context).size.width;
 
     currentPage = currentPage;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.primary,
         toolbarOpacity: 0,
-        toolbarHeight: kToolbarHeight*1.5,
+        toolbarHeight: screenWidth/6,
         
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -124,13 +175,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ImageButton(
               image: "note2.png",
               color: indexPage == 0 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
-              width: 40, height: 40,
+              width: screenWidth/8,
               pressUp: () => setState( () => indexPage = 0),
             ),
             ImageButton(
               image: "songqueue.png",
               color: indexPage == 1 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
-              width: 50, height: 50,
+              width: screenWidth/8,
               pressUp: () => setState( () => indexPage = 1),
             )
           ],
@@ -155,17 +206,16 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           },
           child: Container(
-            margin: const EdgeInsets.all(10),
+            margin: EdgeInsets.all(screenWidth/25),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth / 50),
                   child: Image.asset(
                     "assets/note.png",
                     color: Theme.of(context).colorScheme.onPrimary,
-                    height: 50,
-                    width: 50,
+                    width: screenWidth / 8,
                   ),
                 ),
                 Expanded(
@@ -173,16 +223,18 @@ class _MyHomePageState extends State<MyHomePage> {
                     basename(player.current!.path),
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       //color: Theme.of(context).colorScheme.inversePrimary,
-                      fontWeight: FontWeight.bold
+                      fontWeight: FontWeight.bold,
+                      fontSize: screenWidth / 25
                     ),
                     fadedBorder: true,
-                    velocity: const Velocity(pixelsPerSecond: Offset(10, 0)),
+                    velocity: Velocity(pixelsPerSecond: Offset(screenWidth / 25, 0)),
                   ),
                 ),
                 ImageButton(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth / 50),
                   image: (player.playing == false) ? "play.png" : "pause.png",
                   color: Theme.of(context).colorScheme.onPrimary,
+                  width: screenWidth / 8,
                   pressUp: () async {   
                     setState(() {
                       if (player.playing) {

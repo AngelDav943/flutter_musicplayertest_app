@@ -8,7 +8,8 @@ class ImageButton extends StatelessWidget {
     super.key,
     this.image = "",
     this.pressDown, this.pressUp,
-    this.height = 60, this.width = 60,
+    this.height = -1,
+    this.width = -1,
     this.color = const Color.fromRGBO(128, 128, 128, 1),
     this.padding = const EdgeInsets.all(0)
   });
@@ -38,7 +39,7 @@ class ImageButton extends StatelessWidget {
         child: Image.asset(
           "assets/$image",
           color: color,
-          height: height,
+          height: height == -1 ? width : height,
           width: width,
         ),
       ),
@@ -52,11 +53,18 @@ class SongTile extends StatefulWidget {
     required this.selected,
     required this.element,
     required this.filename,
+    this.trailing,
+    this.backgroundColor,
+    this.foregroundColor
   });
 
   final bool selected;
   final FileSystemEntity element;
   final String filename;
+  final Widget? trailing;
+
+  final Color? backgroundColor;
+  final Color? foregroundColor;
 
   @override
   State<SongTile> createState() => _SongTileState();
@@ -65,23 +73,33 @@ class SongTile extends StatefulWidget {
 class _SongTileState extends State<SongTile> {
   @override
   Widget build(BuildContext context) {
+    
+    double screenWidth = MediaQuery.of(context).size.width;
+
+    Color defaultBackground = widget.selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface;
+    Color defaultForeground = widget.selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onSurface;
+
     return Card(
-      color: widget.selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+      color: widget.backgroundColor ?? defaultBackground,
+
       elevation: (widget.element == player.current) ? 20 : 1,
       child: ListTile(
+        contentPadding: EdgeInsets.symmetric(vertical: screenWidth / 100, horizontal: screenWidth/ 25),
         leading: Image.asset(
           'assets/note.png',
-          color: widget.selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onSurface,
-          height: 35,
+          color: widget.foregroundColor ?? defaultForeground,
+          height: screenWidth/10,
           fit: BoxFit.contain,
         ),
         title: Text(
           widget.filename,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: widget.selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onSurface,
-            fontWeight: widget.selected ? FontWeight.bold : FontWeight.normal
+            color: widget.foregroundColor ?? defaultForeground,
+            fontWeight: widget.selected ? FontWeight.bold : FontWeight.normal,
+            fontSize: screenWidth / 30
           ),
         ),
+        trailing: widget.trailing,
         onTap: () async {
           await Navigator.push(context, MaterialPageRoute(builder: (context) {
             return player.Player(file: widget.element);
