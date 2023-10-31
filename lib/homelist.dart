@@ -28,16 +28,17 @@ class _HomeListState extends State<HomeList> {
         child: ListView.builder(
           itemCount: widget.files.length,
           itemBuilder: (context, index) {
-            FileSystemEntity element = widget.files[index];
-            bool selected = (element == player.current);
-            bool inQueue = queue.queueList.contains(element);
+            FileSystemEntity songFile = widget.files[index];
+            bool selected = player.current == null ? false : (songFile.path == player.current!.path);
+
+            bool inQueue = queue.queueList.contains(songFile.path);
 
             Color colorPlaying = selected ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onSurface;
 
             return SongTile(
               selected: selected, 
-              element: element, 
-              filename: basename(element.path),
+              element: songFile, 
+              filename: basename(songFile.path),
               backgroundColor: inQueue ? Theme.of(context).colorScheme.inversePrimary : null,
               foregroundColor: inQueue ? Theme.of(context).colorScheme.background : null,
               trailing: ImageButton(
@@ -45,10 +46,12 @@ class _HomeListState extends State<HomeList> {
                 color: inQueue ? Theme.of(context).colorScheme.background : colorPlaying,
                 width: screenWidth/10,
                 pressUp: () async {
-                  await showDialog(
+                  /*await showDialog(
                     context: context,
                     builder: (context) => queue.queueDialog(context, element)
-                  );
+                  );*/
+                  bool added = queue.addToQueue(songFile);
+                  if (!added) queue.removeFromQueue(songFile);
                   setState(() {});
                 },
               ),

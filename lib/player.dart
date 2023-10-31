@@ -28,8 +28,8 @@ AudioPlayer player = AudioPlayer();
 StreamController onPlayerUpdateController = StreamController.broadcast();
 Stream onPlayerUpdate = onPlayerUpdateController.stream;
 
-var display;
-var current;
+FileSystemEntity? display;
+FileSystemEntity? current;
 
 double volume = 1.0;
 bool looping = false;
@@ -108,9 +108,9 @@ class _PlayerState extends State<Player> {
 
   void getPositions() async {
     var position = Duration.zero;
-    var duration = await getDuration(display);
+    var duration = await getDuration(display!);
 
-    if (display == current) position = (await player.getCurrentPosition())!;
+    if (current != null) if (display!.path == current!.path) position = (await player.getCurrentPosition())!;
     setState(() {
       songPosition = position;
       songDuration = duration;
@@ -155,14 +155,14 @@ class _PlayerState extends State<Player> {
       onPlayerUpdateController.add(null);
 
       player.play(
-        DeviceFileSource(display.path),
+        DeviceFileSource(display!.path),
         mode: PlayerMode.mediaPlayer,
         position: songPosition,
       );
       
       if (playing == false) player.pause();
     }
-    if (display == current) player.seek(newDuration);
+    if (display!.path == current!.path) player.seek(newDuration);
   }
   bool draggingVolume = false;
 
@@ -172,12 +172,12 @@ class _PlayerState extends State<Player> {
 
     if ((current != display || player.source == null) && localplaying == false) {
       localplaying = true;
-      playSong(display);
+      playSong(display!);
       return;
     }
 
     if (ended == true && looping == false) {
-      playSong(display);
+      playSong(display!);
       return;
     }
 
@@ -188,7 +188,7 @@ class _PlayerState extends State<Player> {
       player.pause();
     }
 
-    if (display == current) localplaying = playing;
+    if (display!.path == current!.path) localplaying = playing;
     onPlayerUpdateController.add(null);
   }
 
@@ -211,8 +211,8 @@ class _PlayerState extends State<Player> {
   
   @override
   Widget build(BuildContext context) {
-    if (display == current) localplaying = playing;
-    String filename = basename(display.path);
+    if (current != null) if (display!.path == current!.path) localplaying = playing;
+    String filename = basename(display!.path);
 
     double screenWidth = MediaQuery.of(context).size.width;
     double squareSize = screenWidth/1.5;
@@ -336,7 +336,7 @@ class _PlayerState extends State<Player> {
                     builder: (BuildContext ctx, StateSetter setSliderState) {
                       
                       onPosChanged = player.onPositionChanged.listen((newPosition) {
-                        if (ctx.mounted && display == current) {
+                        if (ctx.mounted && display!.path == current!.path) {
                           setSliderState(() {
                             songPosition = newPosition;
                           });
@@ -377,12 +377,12 @@ class _PlayerState extends State<Player> {
                         children: [
                           ImageButton(
                             image: "songqueue.png",
-                            color: queue.queueList.contains(display) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                            color: queue.queueList.contains(display!.path) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
                             width: screenWidth / 5,
                             pressUp: () async {
                               await showDialog(
                                 context: context,
-                                builder: (context) => queue.queueDialog(context, display)
+                                builder: (context) => queue.queueDialog(context, display!)
                               );
                               setState(() {});
                             },

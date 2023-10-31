@@ -5,15 +5,17 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart';
 import 'package:text_scroll/text_scroll.dart';
 import 'package:flutter_background/flutter_background.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+//import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'widgets/inputs.dart';
 
+import 'notification_service.dart';
 import 'player.dart' as player;
 import 'homelist.dart';
-import 'queue.dart';
+import 'queue.dart' as queue;
 
 void main() {
+  //WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -75,17 +77,6 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-void onDidReceiveNotificationResponse(NotificationResponse notificationResponse) async {
-    final String? payload = notificationResponse.payload;
-    if (notificationResponse.payload != null) {
-      debugPrint('notification payload: $payload');
-    }
-    /*await Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (context) => SecondScreen(payload)),
-    );*/
-}
-
 class _MyHomePageState extends State<MyHomePage> {
   late List<FileSystemEntity> files = [];
   var indexPage = 0;
@@ -113,33 +104,19 @@ class _MyHomePageState extends State<MyHomePage> {
       notificationIcon: AndroidResource(name: 'background_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
     );
     await FlutterBackground.initialize(androidConfig: androidConfig);
+    //print(success);
+
+    FlutterBackground.enableBackgroundExecution();
   }
 
   @override
   void initState() {
+    //NotificationService().initialize();
+    queue.initialize();
     getMusicFiles();
     startBackgroundService();
 
-    // TODO: NOTIFICATIONS
-    /*
-    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    // initialise the plugin. app_icon needs to be a added as a drawable resource to the Android head project
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
-
-    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-    flutterLocalNotificationsPlugin.initialize(initializationSettings, onDidReceiveNotificationResponse: onDidReceiveNotificationResponse);
-
-    const AndroidNotificationDetails androidNotificationDetails = AndroidNotificationDetails(
-      'your channel id', 'your channel name',
-      channelDescription: 'your channel description',
-      importance: Importance.defaultImportance,
-      priority: Priority.defaultPriority,
-      ticker: 'ticker'
-    );
-
-    const NotificationDetails notificationDetails = NotificationDetails(android: androidNotificationDetails);
-    flutterLocalNotificationsPlugin.show(0, 'plain title', 'plain body', notificationDetails, payload: 'item x');
-    */
+    //NotificationService().showNotification(title: "Sample title", body: "Lorem ipsum");
 
     player.onPlayerUpdate.listen((event) => {
       if (mounted) setState(() {})
@@ -147,6 +124,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
   }
 
+  
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
         break;
       case 1:
         // ignore: prefer_const_constructors
-        currentPage = Queue();
+        currentPage = queue.Queue();
         break;
     }
     
@@ -201,7 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
           onTapUp: (details) async {
             if (player.current != null) {
               await Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return player.Player(file: player.current);
+                return player.Player(file: player.current!);
               }));
             }
           },

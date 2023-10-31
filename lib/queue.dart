@@ -6,30 +6,42 @@ import 'package:flutter/material.dart';
 import 'widgets/inputs.dart';
 import 'player.dart' as player;
 
-List<FileSystemEntity> queueList = [];
+import 'queue_storage.dart';
+//storage.QueueStorage
+
+List<String> queueList = [];
 bool loop = false;
+QueueStorage storage = QueueStorage();
+
+void initialize() async {
+  List<String> newList = await storage.read();
+  for (var element in newList) {
+    queueList.add(element);
+  }
+}
 
 bool addToQueue(FileSystemEntity file) {
-  var contains = queueList.contains(file);
-  //print(contains);
+  var contains = queueList.contains(file.path);
+  
   if (!contains) {
-    queueList.add(file);
+    storage.writeFile(file);
+    queueList.add(file.path);
     return true;
   }
   return false;
 }
 
 bool removeFromQueue(FileSystemEntity file) {
-  return queueList.remove(file);
+  storage.removeFile(file);
+  return queueList.remove(file.path);
 }
 
 void queueSongEnd() {
-  if (queueList.contains(player.current) && loop && queueList.isNotEmpty) {
-    int index = queueList.indexOf(player.current) + 1;
-
+  if (queueList.contains(player.current!.path) && loop && queueList.isNotEmpty) {
+    int index = queueList.indexOf(player.current!.path) + 1;
     if (index >= queueList.length) index = 0;
 
-    FileSystemEntity next = queueList[index];
+    FileSystemEntity next = File(queueList[index]);
 
     player.playSong(next);
     if (player.current == player.display) player.display = next;
@@ -40,7 +52,7 @@ void queueSongEnd() {
 }
 
 Widget queueDialog(BuildContext context, FileSystemEntity file) {
-  var contains = queueList.contains(file);
+  var contains = queueList.contains(file.path);
   return AlertDialog(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.all(Radius.circular(15)),
@@ -102,9 +114,9 @@ class _QueueState extends State<Queue> {
     List<Widget> getElements() {
       List<Widget> elements = [];
       for (var element in queueList) {
-        String filename = basename(element.path);
-        bool selected = (element == player.current);
-        elements.add(SongTile(selected: selected, element: element, filename: filename));
+        String filename = basename(element);
+        bool selected = player.current == null ? false : (element == player.current!.path);
+        elements.add(SongTile(selected: selected, element: File(element), filename: filename));
       }
       return elements;
     }
@@ -118,7 +130,7 @@ class _QueueState extends State<Queue> {
         ),
       ) : Image.asset(
         'assets/songqueue.png',
-        width: MediaQuery.of(context).size.width,
+        width: MediaQuery.of(context).size.width/2,
       )
     );
   }
