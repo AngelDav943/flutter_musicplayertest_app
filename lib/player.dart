@@ -32,9 +32,11 @@ FileSystemEntity? display;
 FileSystemEntity? current;
 
 double volume = 1.0;
-bool looping = false;
+//bool looping = false;
 bool playing = false;
-var onComplete;
+StreamSubscription? onComplete;
+
+int loopMode = 0; // 0 no repeat, 1 normal looping, 2 queue looping, 3 queue shuffling
 
 void playSong(FileSystemEntity file) async {
   playing = true;
@@ -46,7 +48,7 @@ void playSong(FileSystemEntity file) async {
 
   FlutterBackground.enableBackgroundExecution();
   
-  if (onComplete != null) onComplete.cancel();
+  if (onComplete != null) onComplete!.cancel();
   onComplete = player.onPlayerComplete.listen((event) {
     queue.queueSongEnd();
     if (queue.loop == false) {
@@ -64,9 +66,9 @@ class _PlayerState extends State<Player> {
 
   late AudioSession session;
 
-  var onPosChanged;
-  var onPlayerNoise;
-  var onNoisyEvent;
+  StreamSubscription<Duration>? onPosChanged;
+  StreamSubscription? onPlayerNoise;
+  StreamSubscription? onNoisyEvent;
 
   bool loaded = false;
   bool ended = false;
@@ -84,8 +86,8 @@ class _PlayerState extends State<Player> {
 
   @override
   void dispose() {
-    if (onPosChanged != null) onPosChanged.cancel();
-    if (onPlayerNoise != null) onPlayerNoise.cancel();
+    if (onPosChanged != null) onPosChanged!.cancel();
+    if (onPlayerNoise != null) onPlayerNoise!.cancel();
     super.dispose();
   }
 
@@ -102,13 +104,13 @@ class _PlayerState extends State<Player> {
   Future<Duration> getDuration(FileSystemEntity file) async {
     AudioPlayer displayPlayer = AudioPlayer();
     await displayPlayer.setSource(DeviceFileSource(file.path));
-    var duration = (await displayPlayer.getDuration())!;
+    Duration duration = (await displayPlayer.getDuration())!;
     return duration;
   }
 
   void getPositions() async {
-    var position = Duration.zero;
-    var duration = await getDuration(display!);
+    Duration position = Duration.zero;
+    Duration duration = await getDuration(display!);
 
     if (current != null) if (display!.path == current!.path) position = (await player.getCurrentPosition())!;
     setState(() {
@@ -141,7 +143,7 @@ class _PlayerState extends State<Player> {
   }
 
   String formatTime(int seconds) {
-    var time = '${(Duration(seconds: seconds))}'.split('.')[0].split(':');
+    List<String> time = '${(Duration(seconds: seconds))}'.split('.')[0].split(':');
     time.remove('0');
     return time.join(':').padLeft(1, '0');
   }
@@ -176,7 +178,7 @@ class _PlayerState extends State<Player> {
       return;
     }
 
-    if (ended == true && looping == false) {
+    if (ended == true && loopMode == 1) {
       playSong(display!);
       return;
     }
@@ -194,17 +196,30 @@ class _PlayerState extends State<Player> {
 
   void toggleLooping() {
     if (ended == false) {
-      if (!looping && queue.loop == false) { // activate looping
-        looping = true;
-        player.setReleaseMode(ReleaseMode.loop);
-      } else { // disable looping
-        looping = false;
-        player.setReleaseMode(ReleaseMode.release);
-        if (queue.queueList.isNotEmpty) {
-          queue.loop = !queue.loop;
-        } else {
+      int limit = 1;
+      if (queue.queueList.isNotEmpty && queue.queueList.contains(display!.path)) limit = 3;
+
+      loopMode = loopMode < limit ? loopMode + 1 : 0;
+
+      if (loopMode != 1) player.setReleaseMode(ReleaseMode.release);
+
+      switch (loopMode) {
+        case 1: // normal looping
           queue.loop = false;
-        }
+          queue.shuffle = false;
+          player.setReleaseMode(ReleaseMode.loop);
+          break;
+        case 2: // queue looping
+          queue.loop = true;
+          queue.shuffle = false;
+          break;
+        case 3: // queue shuffling
+          queue.loop = true;
+          queue.shuffle = true;
+          break;
+        default: // default 0: no repeat
+          queue.loop = false;
+          queue.shuffle = false;
       }
     }
   }
@@ -216,6 +231,22 @@ class _PlayerState extends State<Player> {
 
     double screenWidth = MediaQuery.of(context).size.width;
     double squareSize = screenWidth/1.5;
+
+    String loopIcon = "repeat.png";
+    Color loopColor = Theme.of(context).colorScheme.surface;
+
+    switch (loopMode) {
+      case 1: // normal looping
+        loopColor = Theme.of(context).colorScheme.primary;
+        break;
+      case 2: // queue looping
+        loopColor = Theme.of(context).colorScheme.inversePrimary;
+        break;
+      case 3: // queue shuffling
+        loopIcon = "shuffle.png";
+        loopColor = Theme.of(context).colorScheme.inversePrimary;
+        break;
+    }
 
     return WillPopScope(
       onWillPop: () async {
@@ -396,8 +427,8 @@ class _PlayerState extends State<Player> {
                             }),
                           ),
                           ImageButton(
-                            image: "repeat.png",
-                            color: queue.loop ? Theme.of(context).colorScheme.inversePrimary : looping ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                            image: loopIcon,
+                            color: loopColor,
                             width: screenWidth / 5,
                             pressUp: () => setState(() => toggleLooping()),
                           )

@@ -1,5 +1,6 @@
 
 import 'dart:io';
+import 'dart:math';
 import 'package:path/path.dart';
 import 'package:flutter/material.dart';
 
@@ -11,17 +12,18 @@ import 'queue_storage.dart';
 
 List<String> queueList = [];
 bool loop = false;
+bool shuffle = false;
 QueueStorage storage = QueueStorage();
 
 void initialize() async {
   List<String> newList = await storage.read();
-  for (var element in newList) {
+  for (String element in newList) {
     queueList.add(element);
   }
 }
 
 bool addToQueue(FileSystemEntity file) {
-  var contains = queueList.contains(file.path);
+  bool contains = queueList.contains(file.path);
   
   if (!contains) {
     storage.writeFile(file);
@@ -36,9 +38,18 @@ bool removeFromQueue(FileSystemEntity file) {
   return queueList.remove(file.path);
 }
 
+Random rng = Random();
 void queueSongEnd() {
   if (queueList.contains(player.current!.path) && loop && queueList.isNotEmpty) {
-    int index = queueList.indexOf(player.current!.path) + 1;
+    int songIndex = queueList.indexOf(player.current!.path);
+    int index = songIndex + 1;
+    
+    if (shuffle == true) {
+      int newRandom = rng.nextInt(queueList.length-1);
+      if (newRandom == songIndex) newRandom = rng.nextInt(queueList.length-1);
+      index = newRandom;
+    }
+    
     if (index >= queueList.length) index = 0;
 
     FileSystemEntity next = File(queueList[index]);
@@ -52,7 +63,7 @@ void queueSongEnd() {
 }
 
 Widget queueDialog(BuildContext context, FileSystemEntity file) {
-  var contains = queueList.contains(file.path);
+  bool contains = queueList.contains(file.path);
   return AlertDialog(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.all(Radius.circular(15)),
@@ -113,7 +124,7 @@ class _QueueState extends State<Queue> {
 
     List<Widget> getElements() {
       List<Widget> elements = [];
-      for (var element in queueList) {
+      for (String element in queueList) {
         String filename = basename(element);
         bool selected = player.current == null ? false : (element == player.current!.path);
         elements.add(SongTile(selected: selected, element: File(element), filename: filename));

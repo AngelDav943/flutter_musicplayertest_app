@@ -79,18 +79,20 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late List<FileSystemEntity> files = [];
-  var indexPage = 0;
+  int indexPage = 0;
   Widget currentPage = Center(
     child: Image.asset("assets/note.png"),
   );
 
   void getMusicFiles() async {
-    var status = await Permission.manageExternalStorage.status;
+    PermissionStatus status = await Permission.manageExternalStorage.status;
     if (!status.isGranted) await Permission.manageExternalStorage.request();
 
     Directory musicDir = Directory('/storage/emulated/0/Music');
-    final List<FileSystemEntity> songs = await musicDir.list().toList();
-
+    final List<FileSystemEntity> songs = (await musicDir.list().toList()).where((FileSystemEntity file) {
+      return file.path.contains(".mp3");
+    }).toList();
+    
     setState(() {
       files = songs;
     });
