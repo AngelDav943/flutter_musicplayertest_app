@@ -46,12 +46,12 @@ class _HomeListState extends State<HomeList> {
                 color: inQueue ? Theme.of(context).colorScheme.background : colorPlaying,
                 width: screenWidth/10,
                 pressUp: () async {
-                  /*await showDialog(
+                  await showDialog(
                     context: context,
-                    builder: (context) => queue.queueDialog(context, element)
-                  );*/
-                  bool added = queue.addToQueue(songFile);
-                  if (!added) queue.removeFromQueue(songFile);
+                    builder: (context) => queue.queueDialog(context, songFile)
+                  );
+                  /*bool added = queue.addToQueue(songFile);
+                  if (!added) queue.removeFromQueue(songFile);*/
                   setState(() {});
                 },
               ),

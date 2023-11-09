@@ -9,7 +9,7 @@ import 'package:flutter_background/flutter_background.dart';
 
 import 'widgets/inputs.dart';
 
-import 'notification_service.dart';
+//import 'notification_service.dart';
 import 'player.dart' as player;
 import 'homelist.dart';
 import 'queue.dart' as queue;
@@ -90,9 +90,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     Directory musicDir = Directory('/storage/emulated/0/Music');
     final List<FileSystemEntity> songs = (await musicDir.list().toList()).where((FileSystemEntity file) {
-      return file.path.contains(".mp3");
+      return file.path.contains(".mp3"); // leave only .mp3 audios
     }).toList();
-    
+
     setState(() {
       files = songs;
     });
@@ -125,9 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     super.initState();
   }
-
   
-
   @override
   Widget build(BuildContext context) {
     switch (indexPage) {
@@ -137,6 +135,9 @@ class _MyHomePageState extends State<MyHomePage> {
       case 1:
         // ignore: prefer_const_constructors
         currentPage = queue.Queue();
+        break;
+      case 2:
+        currentPage = queue.Playlists();
         break;
     }
     
@@ -163,6 +164,12 @@ class _MyHomePageState extends State<MyHomePage> {
               color: indexPage == 1 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
               width: screenWidth/8,
               pressUp: () => setState( () => indexPage = 1),
+            ),
+            ImageButton(
+              image: "shuffle.png",
+              color: indexPage == 2 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
+              width: screenWidth/8,
+              pressUp: () => setState( () => indexPage = 2),
             )
           ],
         ),

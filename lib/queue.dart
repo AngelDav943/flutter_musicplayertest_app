@@ -15,7 +15,11 @@ bool loop = false;
 bool shuffle = false;
 QueueStorage storage = QueueStorage();
 
+List<String> playlists = [];
+
 void initialize() async {
+  storage.initialise();
+  playlists = await storage.getPlaylists();
   List<String> newList = await storage.read();
   for (String element in newList) {
     queueList.add(element);
@@ -63,7 +67,128 @@ void queueSongEnd() {
 }
 
 Widget queueDialog(BuildContext context, FileSystemEntity file) {
-  bool contains = queueList.contains(file.path);
+  //bool contains = queueList.contains(file.path);
+  
+  double screenWidth = MediaQuery.of(context).size.width;
+  
+  return Dialog.fullscreen(
+    backgroundColor: Theme.of(context).colorScheme.primary,
+    child: FractionallySizedBox(
+      widthFactor: 0.95,
+      child: Column(
+        children: [
+          Padding(padding: EdgeInsets.symmetric(vertical: screenWidth/ 50)),
+          Card(
+            color: Theme.of(context).colorScheme.secondary, // background
+            elevation: 10,
+            child: ListTile(
+              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: screenWidth/ 25),
+              leading: Image.asset(
+                'assets/menu.png',
+                color: Theme.of(context).colorScheme.onSurface, // foreground
+                height: screenWidth/10,
+                fit: BoxFit.contain,
+              ),
+              title: Text(
+                "Create new playlist",
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: screenWidth / 30
+                ),
+              ),
+              onTap: () async {
+                TextEditingController playlistInput = TextEditingController();
+                await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      content: TextField(
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: "Insert playlist name"
+                        ),
+                        controller: playlistInput,
+                      ),
+                      actions: [
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context, false);
+                          },
+                          child: const Text("Cancel")
+                        ),
+                        FilledButton(
+                          onPressed: () {
+                            storage.getQueueFile(playlist: playlistInput.text, autoCreate: true);
+                            Navigator.pop(context, false);
+                          },
+                          child: const Text("Create")
+                        ),
+                      ],
+                    );
+                  }
+                );
+                playlists = await storage.getPlaylists();
+              },
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: playlists.length,
+              itemBuilder: ((context, index) {
+                String playlist = playlists[index].replaceAll("queue_", "").replaceAll(".txt", "");
+                bool contains = storage.checkFile(file, playlist: playlist);
+                
+                Color backgroundColor = contains ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface;
+                Color foregroundColor = contains ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onSurface;
+          
+                return Card(
+                  color: backgroundColor, // background
+          
+                  elevation: contains ? 20 : 1,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.symmetric(vertical: screenWidth / 100, horizontal: screenWidth/ 25),
+                    leading: Image.asset(
+                      'assets/songqueue.png',
+                      color: foregroundColor, // foreground
+                      height: screenWidth/10,
+                      fit: BoxFit.contain,
+                    ),
+                    title: Text(
+                      playlist,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: foregroundColor,
+                        fontWeight: contains ? FontWeight.bold : FontWeight.normal,
+                        fontSize: screenWidth / 30
+                      ),
+                    ),
+                    onTap: () async {
+                      if (!contains) {
+                        addToQueue(file);
+                      } else {
+                        removeFromQueue(file);
+                      }
+                      Navigator.pop(context, false);
+                    },
+                    trailing: ImageButton(
+                      image: 'delete.png',
+                      color: foregroundColor,
+                      width: screenWidth/10,
+                      pressUp: () async {
+                        await storage.removeQueueFile(playlist);
+                        playlists = await storage.getPlaylists();
+                      },
+                    ),
+                  ),
+                );
+              })
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  /*
   return AlertDialog(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.all(Radius.circular(15)),
@@ -82,14 +207,12 @@ Widget queueDialog(BuildContext context, FileSystemEntity file) {
       child: Image.asset(
         "assets/songqueue.png",
         color: Theme.of(context).colorScheme.onPrimary,
-        width: 40,
+        width: 10,
       ),
     ),
-    iconPadding: const EdgeInsets.all(10),
-    titlePadding: const EdgeInsets.all(10),
-    titleTextStyle: Theme.of(context).textTheme.titleLarge,
-    title: Text("${contains ? "Delete song from" : "Add song to"} queue?"),
-    actions: [
+    title: Text("${contains ? "Delete song from" : "Add song to"} playlist"),
+    content: const Text("hii"),
+    /*actions: [
       ElevatedButton(
         onPressed: () {
           Navigator.pop(context, false);
@@ -107,8 +230,9 @@ Widget queueDialog(BuildContext context, FileSystemEntity file) {
         },
         child: const Text("Yes")
       ),
-    ],
+    ],*/
   );
+  // */
 }
 
 class Queue extends StatefulWidget {
@@ -143,6 +267,52 @@ class _QueueState extends State<Queue> {
         'assets/songqueue.png',
         width: MediaQuery.of(context).size.width/2,
       )
+    );
+  }
+}
+
+
+class Playlists extends StatefulWidget {
+  const Playlists({super.key});
+
+  @override
+  State<Playlists> createState() => _PlaylistsState();
+}
+
+class _PlaylistsState extends State<Playlists> {
+
+  late List<String> playlists = [];
+
+  void getPlaylists() async {
+    List<String> storagePlaylists = await storage.getPlaylists();
+    setState(() {
+      playlists = storagePlaylists;
+    });
+  }
+
+  @override
+  void initState() {
+    getPlaylists();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    return Center(
+      child: ListView.builder(
+        itemCount: playlists.length,
+        itemBuilder: ((context, index) {
+          return Card(
+            child: Text(
+              playlists[index],
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontSize: screenWidth / 25
+              )
+            ),
+          );
+        })
+      ),
     );
   }
 }
