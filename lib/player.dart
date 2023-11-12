@@ -73,6 +73,7 @@ class _PlayerState extends State<Player> {
   bool loaded = false;
   bool ended = false;
   bool localplaying = false;
+  int localLoopMode = 0;
 
   Duration songDuration = const Duration();
   Duration songPosition = const Duration();
@@ -178,7 +179,7 @@ class _PlayerState extends State<Player> {
       return;
     }
 
-    if (ended == true && loopMode == 1) {
+    if (ended == true && localLoopMode == 1) {
       playSong(display!);
       return;
     }
@@ -195,32 +196,34 @@ class _PlayerState extends State<Player> {
   }
 
   void toggleLooping() {
-    if (ended == false) {
-      int limit = 1;
-      if (queue.queueList.isNotEmpty && queue.queueList.contains(display!.path)) limit = 3;
+    if (ended == true) return;
 
-      loopMode = loopMode < limit ? loopMode + 1 : 0;
+    bool insideQueue = queue.queueList.contains(display!.path);
+    int limit = insideQueue ? 3 : 1;
+    
+    localLoopMode = localLoopMode < limit ? localLoopMode + 1 : 0;
 
-      if (loopMode != 1) player.setReleaseMode(ReleaseMode.release);
+    if ((current != null && display!.path != current!.path) || insideQueue == false) return;
 
-      switch (loopMode) {
-        case 1: // normal looping
-          queue.loop = false;
-          queue.shuffle = false;
-          player.setReleaseMode(ReleaseMode.loop);
-          break;
-        case 2: // queue looping
-          queue.loop = true;
-          queue.shuffle = false;
-          break;
-        case 3: // queue shuffling
-          queue.loop = true;
-          queue.shuffle = true;
-          break;
-        default: // default 0: no repeat
-          queue.loop = false;
-          queue.shuffle = false;
-      }
+    loopMode = localLoopMode;
+    if (localLoopMode != 1) player.setReleaseMode(ReleaseMode.release);
+    switch (localLoopMode) {
+      case 1: // normal looping
+        queue.loop = false;
+        queue.shuffle = false;
+        player.setReleaseMode(ReleaseMode.loop);
+        break;
+      case 2: // queue looping
+        queue.loop = true;
+        queue.shuffle = false;
+        break;
+      case 3: // queue shuffling
+        queue.loop = true;
+        queue.shuffle = true;
+        break;
+      default: // default 0: no repeat
+        queue.loop = false;
+        queue.shuffle = false;
     }
   }
   
@@ -235,7 +238,7 @@ class _PlayerState extends State<Player> {
     String loopIcon = "repeat.png";
     Color loopColor = Theme.of(context).colorScheme.surface;
 
-    switch (loopMode) {
+    switch (localLoopMode) {
       case 1: // normal looping
         loopColor = Theme.of(context).colorScheme.primary;
         break;
