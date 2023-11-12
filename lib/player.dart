@@ -204,7 +204,8 @@ class _PlayerState extends State<Player> {
     //loopMode = loopMode < limit ? loopMode + 1 : 0;
     localLoopMode = localLoopMode < limit ? localLoopMode + 1 : 0;
 
-    if (current != null && display!.path == current!.path) return;
+    bool insideQueue = queue.queueList.contains(display!.path);
+    if ((current != null && display!.path != current!.path) || insideQueue == false) return;
 
     loopMode = localLoopMode;
     if (localLoopMode != 1) player.setReleaseMode(ReleaseMode.release);
