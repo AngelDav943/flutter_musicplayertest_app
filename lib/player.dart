@@ -73,7 +73,7 @@ class _PlayerState extends State<Player> {
   bool loaded = false;
   bool ended = false;
   bool localplaying = false;
-  int localLoopMode = 0;
+  //int loopMode = 0;
 
   Duration songDuration = const Duration();
   Duration songPosition = const Duration();
@@ -179,7 +179,7 @@ class _PlayerState extends State<Player> {
       return;
     }
 
-    if (ended == true && localLoopMode == 1) {
+    if (ended == true && loopMode == 1) {
       playSong(display!);
       return;
     }
@@ -201,13 +201,14 @@ class _PlayerState extends State<Player> {
     bool insideQueue = queue.queueList.contains(display!.path);
     int limit = insideQueue ? 3 : 1;
     
-    localLoopMode = localLoopMode < limit ? localLoopMode + 1 : 0;
+    loopMode = loopMode < limit ? loopMode + 1 : 0;
 
     if ((current != null && display!.path != current!.path) || insideQueue == false) return;
 
-    loopMode = localLoopMode;
-    if (localLoopMode != 1) player.setReleaseMode(ReleaseMode.release);
-    switch (localLoopMode) {
+    //loopMode = localLoopMode;
+    if (loopMode != 1) player.setReleaseMode(ReleaseMode.release);
+    
+    switch (loopMode) {
       case 1: // normal looping
         queue.loop = false;
         queue.shuffle = false;
@@ -238,7 +239,7 @@ class _PlayerState extends State<Player> {
     String loopIcon = "repeat.png";
     Color loopColor = Theme.of(context).colorScheme.surface;
 
-    switch (localLoopMode) {
+    switch (loopMode) {
       case 1: // normal looping
         loopColor = Theme.of(context).colorScheme.primary;
         break;
