@@ -9,10 +9,26 @@ import 'package:flutter_background/flutter_background.dart';
 
 import 'widgets/inputs.dart';
 
-//import 'notification_service.dart';
+import 'notification_service.dart';
 import 'player.dart' as player;
 import 'homelist.dart';
 import 'queue.dart' as queue;
+import 'playlists.dart' as playlist;
+
+NotificationService notifService = NotificationService();
+
+void startBackgroundService() async {
+  const androidConfig = FlutterBackgroundAndroidConfig(
+    notificationTitle: "Music player",
+    notificationText: "",
+    notificationImportance: AndroidNotificationImportance.Default,
+    notificationIcon: AndroidResource(name: 'notification_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
+  );
+  await FlutterBackground.initialize(androidConfig: androidConfig);
+  
+  bool success = await FlutterBackground.enableBackgroundExecution();
+  print("successful? $success");
+}
 
 void main() {
   //WidgetsFlutterBinding.ensureInitialized();
@@ -98,27 +114,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void startBackgroundService() async {
-    const androidConfig = FlutterBackgroundAndroidConfig(
-      notificationTitle: "Music player",
-      notificationText: "",
-      notificationImportance: AndroidNotificationImportance.Default,
-      notificationIcon: AndroidResource(name: 'background_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
-    );
-    await FlutterBackground.initialize(androidConfig: androidConfig);
-    //print(success);
-
-    FlutterBackground.enableBackgroundExecution();
-  }
-
   @override
   void initState() {
-    //NotificationService().initialize();
+    notifService.initialize();
     queue.initialize();
     getMusicFiles();
     startBackgroundService();
-
-    //NotificationService().showNotification(title: "Sample title", body: "Lorem ipsum");
 
     player.onPlayerUpdate.listen((event) => {
       if (mounted) setState(() {})
@@ -128,6 +129,9 @@ class _MyHomePageState extends State<MyHomePage> {
   
   @override
   Widget build(BuildContext context) {
+
+    //notifService.showNotification(title: "Angel's Music player", body: "Hello! test notif");
+
     switch (indexPage) {
       case 0:
         currentPage = HomeList(files: files);
@@ -137,7 +141,7 @@ class _MyHomePageState extends State<MyHomePage> {
         currentPage = queue.Queue();
         break;
       case 2: // temp.. c vc
-        currentPage = queue.Playlists();
+        currentPage = const playlist.Playlists();
         break;
     }
     

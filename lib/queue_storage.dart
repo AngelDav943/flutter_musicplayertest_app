@@ -86,9 +86,10 @@ class QueueStorage {
     }
   }
 
+  // checks for a song inside a playlist
   bool checkFile(FileSystemEntity fileToCheck, {String playlist = "default"})
   {
-    final queueFile = getQueueFile(playlist: playlist, autoCreate: true);
+    final queueFile = getQueueFile(playlist: playlist, autoCreate: false);
     final contents = queueFile.readAsStringSync();
 
     return contents.contains(Uri.encodeComponent(fileToCheck.path));
