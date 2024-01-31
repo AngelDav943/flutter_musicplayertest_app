@@ -17,21 +17,8 @@ import 'playlists.dart' as playlist;
 
 NotificationService notifService = NotificationService();
 
-void startBackgroundService() async {
-  const androidConfig = FlutterBackgroundAndroidConfig(
-    notificationTitle: "Music player",
-    notificationText: "",
-    notificationImportance: AndroidNotificationImportance.Default,
-    notificationIcon: AndroidResource(name: 'notification_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
-  );
-  await FlutterBackground.initialize(androidConfig: androidConfig);
-  
-  bool success = await FlutterBackground.enableBackgroundExecution();
-  print("successful? $success");
-}
-
 void main() {
-  //WidgetsFlutterBinding.ensureInitialized();
+  //WidgetsFlutterBinding.ensureInitialized();  
   runApp(const MyApp());
 }
 
@@ -104,7 +91,10 @@ class _MyHomePageState extends State<MyHomePage> {
     PermissionStatus status = await Permission.manageExternalStorage.status;
     if (!status.isGranted) await Permission.manageExternalStorage.request();
 
-    Directory musicDir = Directory('/storage/emulated/0/Music');
+    String musicPath = '/storage/emulated/0/Music';
+    if (Platform.isWindows) musicPath = "/Music";
+
+    Directory musicDir = Directory(musicPath);
     final List<FileSystemEntity> songs = (await musicDir.list().toList()).where((FileSystemEntity file) {
       return file.path.contains(".mp3"); // leave only .mp3 audios
     }).toList();
@@ -114,12 +104,27 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void startBackgroundService() async {
+    bool backgroundPermissions = await FlutterBackground.hasPermissions;
+    if (!backgroundPermissions) return;
+
+    const androidConfig = FlutterBackgroundAndroidConfig(
+      notificationTitle: "Music player",
+      notificationText: "",
+      notificationImportance: AndroidNotificationImportance.Default,
+      notificationIcon: AndroidResource(name: 'notification_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
+    );
+    await FlutterBackground.initialize(androidConfig: androidConfig);
+
+    FlutterBackground.enableBackgroundExecution();
+  }
+
   @override
   void initState() {
     notifService.initialize();
+    startBackgroundService();
     queue.initialize();
     getMusicFiles();
-    startBackgroundService();
 
     player.onPlayerUpdate.listen((event) => {
       if (mounted) setState(() {})
@@ -227,12 +232,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: Theme.of(context).colorScheme.onPrimary,
                   width: screenWidth / 8,
                   pressUp: () async {   
+                    if (player.playing) {
+                      player.player.pause();
+                    } else {
+                      player.player.resume();
+                    }
                     setState(() {
-                      if (player.playing) {
-                        player.player.pause();
-                      } else {
-                        player.player.resume();
-                      }
                       player.playing = !player.playing;
                     });
                   },
