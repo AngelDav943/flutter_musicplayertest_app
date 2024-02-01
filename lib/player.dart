@@ -73,7 +73,6 @@ class _PlayerState extends State<Player> {
   bool loaded = false;
   bool ended = false;
   bool localplaying = false;
-  //int loopMode = 0;
 
   Duration songDuration = const Duration();
   Duration songPosition = const Duration();
@@ -173,59 +172,65 @@ class _PlayerState extends State<Player> {
     bool status = !playing;
     if (override != null) status = override;
 
+    bool targetLocal = false;
+    
+    if (current != null && display!.path == current?.path) targetLocal = status;
+
     if ((current != display || player.source == null) && localplaying == false) {
-      localplaying = true;
+      targetLocal = true;
       playSong(display!);
-      return;
     }
 
-    if (ended == true && loopMode == 1) {
-      playSong(display!);
-      return;
-    }
-
-    playing = status;
-    if (playing) {
+    if (status) {
       player.resume();
     } else {
       player.pause();
     }
 
-    if (display!.path == current!.path) localplaying = playing;
     onPlayerUpdateController.add(null);
+    setState(() {
+      playing = status;
+      localplaying = targetLocal;
+    });
   }
 
   void toggleLooping() {
-    if (ended == true) return;
+    int limit = 1;
+    if (queue.queueList.isNotEmpty && queue.queueList.contains(display!.path)) limit = 3;
 
-    bool insideQueue = queue.queueList.contains(display!.path);
-    int limit = insideQueue ? 3 : 1;
+    int targetMode = loopMode + 1;
+    if (targetMode > limit) targetMode = 0; // if targetMode is greater than the limit (1 or 3) reset to 0
     
-    loopMode = loopMode < limit ? loopMode + 1 : 0;
+    if (current != null && display!.path != current!.path) return;
 
-    if ((current != null && display!.path != current!.path) || insideQueue == false) return;
-
-    //loopMode = localLoopMode;
-    if (loopMode != 1) player.setReleaseMode(ReleaseMode.release);
+    bool targetLoop = false;
+    bool targetShuffle = false;
     
-    switch (loopMode) {
+    if (targetMode != 1) player.setReleaseMode(ReleaseMode.release);
+    switch (targetMode) {
       case 1: // normal looping
-        queue.loop = false;
-        queue.shuffle = false;
+        targetLoop = false;
+        targetShuffle = false;
         player.setReleaseMode(ReleaseMode.loop);
         break;
       case 2: // queue looping
-        queue.loop = true;
-        queue.shuffle = false;
+        targetLoop = true;
+        targetShuffle = false;
         break;
       case 3: // queue shuffling
-        queue.loop = true;
-        queue.shuffle = true;
+        targetLoop = true;
+        targetShuffle = true;
         break;
       default: // default 0: no repeat
-        queue.loop = false;
-        queue.shuffle = false;
+        targetLoop = false;
+        targetShuffle = false;
     }
+
+    setState(() {
+      loopMode = targetMode;
+      queue.loop = targetLoop;
+      queue.shuffle = targetShuffle;
+    });
   }
   
   @override
@@ -234,7 +239,13 @@ class _PlayerState extends State<Player> {
     String filename = basename(display!.path);
 
     double screenWidth = MediaQuery.of(context).size.width;
-    double squareSize = screenWidth/1.5;
+    double screenHeight = MediaQuery.of(context).size.height;
+    double squareSize = screenWidth / 1.5;
+    double buttonWidth = screenWidth / 5;
+    if (screenHeight/screenWidth < 1.5) {
+      buttonWidth = screenHeight / 8;
+      squareSize = screenHeight / 4;
+    }
 
     String loopIcon = "repeat.png";
     Color loopColor = Theme.of(context).colorScheme.surface;
@@ -290,9 +301,7 @@ class _PlayerState extends State<Player> {
                     ),
                   ),
                   GestureDetector(
-                    onTapUp: (details) => setState(() {
-                      togglePlaying(context);
-                    }),
+                    onTapUp: (details) => togglePlaying(context),
                     onVerticalDragStart:(details) => setState(()=> draggingVolume = true),
                     onVerticalDragUpdate: (details) {
                       double delta = details.delta.dy / 100;
@@ -413,7 +422,7 @@ class _PlayerState extends State<Player> {
                           ImageButton(
                             image: "songqueue.png",
                             color: queue.queueList.contains(display!.path) ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
-                            width: screenWidth / 5,
+                            width: buttonWidth,
                             pressUp: () async {
                               await showDialog(
                                 context: context,
@@ -425,16 +434,14 @@ class _PlayerState extends State<Player> {
                           ImageButton(
                             image: (localplaying == false || ended == true) ? "play.png" : "pause.png",
                             color: Theme.of(context).colorScheme.onBackground,
-                            width: screenWidth / 5,
-                            pressUp: () => setState(() {
-                              togglePlaying(context);
-                            }),
+                            width: buttonWidth,
+                            pressUp: () => togglePlaying(context),
                           ),
                           ImageButton(
                             image: loopIcon,
                             color: loopColor,
-                            width: screenWidth / 5,
-                            pressUp: () => setState(() => toggleLooping()),
+                            width: buttonWidth,
+                            pressUp: () => toggleLooping(),
                           )
                         ],
                       );

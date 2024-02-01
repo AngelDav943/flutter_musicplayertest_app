@@ -13,9 +13,12 @@ import 'notification_service.dart';
 import 'player.dart' as player;
 import 'homelist.dart';
 import 'queue.dart' as queue;
+import 'playlists.dart' as playlist;
+
+NotificationService notifService = NotificationService();
 
 void main() {
-  //WidgetsFlutterBinding.ensureInitialized();
+  //WidgetsFlutterBinding.ensureInitialized();  
   runApp(const MyApp());
 }
 
@@ -88,48 +91,52 @@ class _MyHomePageState extends State<MyHomePage> {
     PermissionStatus status = await Permission.manageExternalStorage.status;
     if (!status.isGranted) await Permission.manageExternalStorage.request();
 
-    Directory musicDir = Directory('/storage/emulated/0/Music');
+    String musicPath = '/storage/emulated/0/Music';
+    if (Platform.isWindows) musicPath = "/Music";
+
+    Directory musicDir = Directory(musicPath);
     final List<FileSystemEntity> songs = (await musicDir.list().toList()).where((FileSystemEntity file) {
-      return file.path.contains(".mp3");
+      return file.path.contains(".mp3"); // leave only .mp3 audios
     }).toList();
-    
+
     setState(() {
       files = songs;
     });
   }
 
   void startBackgroundService() async {
+    bool backgroundPermissions = await FlutterBackground.hasPermissions;
+    if (!backgroundPermissions) return;
+
     const androidConfig = FlutterBackgroundAndroidConfig(
       notificationTitle: "Music player",
       notificationText: "",
       notificationImportance: AndroidNotificationImportance.Default,
-      notificationIcon: AndroidResource(name: 'background_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
+      notificationIcon: AndroidResource(name: 'notification_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
     );
     await FlutterBackground.initialize(androidConfig: androidConfig);
-    //print(success);
 
     FlutterBackground.enableBackgroundExecution();
   }
 
   @override
   void initState() {
-    //NotificationService().initialize();
+    notifService.initialize();
+    startBackgroundService();
     queue.initialize();
     getMusicFiles();
-    startBackgroundService();
-
-    //NotificationService().showNotification(title: "Sample title", body: "Lorem ipsum");
 
     player.onPlayerUpdate.listen((event) => {
       if (mounted) setState(() {})
     });
     super.initState();
   }
-
   
-
   @override
   Widget build(BuildContext context) {
+
+    //notifService.showNotification(title: "Angel's Music player", body: "Hello! test notif");
+
     switch (indexPage) {
       case 0:
         currentPage = HomeList(files: files);
@@ -137,6 +144,9 @@ class _MyHomePageState extends State<MyHomePage> {
       case 1:
         // ignore: prefer_const_constructors
         currentPage = queue.Queue();
+        break;
+      case 2: // temp.. c vc
+        currentPage = const playlist.Playlists();
         break;
     }
     
@@ -163,6 +173,12 @@ class _MyHomePageState extends State<MyHomePage> {
               color: indexPage == 1 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
               width: screenWidth/8,
               pressUp: () => setState( () => indexPage = 1),
+            ),
+            ImageButton(
+              image: "shuffle.png",
+              color: indexPage == 2 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
+              width: screenWidth/8,
+              pressUp: () => setState( () => indexPage = 2),
             )
           ],
         ),
@@ -216,12 +232,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: Theme.of(context).colorScheme.onPrimary,
                   width: screenWidth / 8,
                   pressUp: () async {   
+                    if (player.playing) {
+                      player.player.pause();
+                    } else {
+                      player.player.resume();
+                    }
                     setState(() {
-                      if (player.playing) {
-                        player.player.pause();
-                      } else {
-                        player.player.resume();
-                      }
                       player.playing = !player.playing;
                     });
                   },
