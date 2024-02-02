@@ -12,7 +12,8 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter_background/flutter_background.dart';
 
 import 'widgets/inputs.dart';
-import 'queue.dart' as queue;
+import 'pages/queue.dart' as queue;
+import 'widgets/queueDialog.dart' as queue_dialog;
 
 class Player extends StatefulWidget {
   const Player({super.key, required this.file});
@@ -246,6 +247,10 @@ class _PlayerState extends State<Player> {
       buttonWidth = screenHeight / 8;
       squareSize = screenHeight / 4;
     }
+    
+    if (screenHeight/screenWidth < 0.7) {
+      squareSize = 0;
+    }
 
     String loopIcon = "repeat.png";
     Color loopColor = Theme.of(context).colorScheme.surface;
@@ -426,7 +431,7 @@ class _PlayerState extends State<Player> {
                             pressUp: () async {
                               await showDialog(
                                 context: context,
-                                builder: (context) => queue.queueDialog(context, display!)
+                                builder: (context) => queue_dialog.queueDialog(context, display!)
                               );
                               setState(() {});
                             },

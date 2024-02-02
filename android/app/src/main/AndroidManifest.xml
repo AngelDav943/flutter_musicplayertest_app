@@ -11,10 +11,11 @@
         android:label="Angel's Music player"
         android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/launcher_icon">
+        <!--android:screenOrientation="portrait"-->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
+            
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
