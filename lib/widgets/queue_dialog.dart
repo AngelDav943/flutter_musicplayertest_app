@@ -2,7 +2,45 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../widgets/inputs.dart';
-import '../pages/queue.dart';
+import '../pages/queue.dart' as queue;
+
+AlertDialog createPlaylistDialog(context) {
+  double screenWidth = MediaQuery.of(context).size.width;
+  TextEditingController playlistInput = TextEditingController();
+  return AlertDialog(
+    icon: Image.asset(
+      'assets/folder.png',
+      color: Theme.of(context).colorScheme.onSurface, // foreground
+      height: screenWidth / 10,
+      fit: BoxFit.contain,
+    ),
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+    content: TextField(
+      decoration: const InputDecoration(
+          contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+          border: OutlineInputBorder(
+            gapPadding: 0,
+          ),
+          hintText: "Insert playlist name"),
+      controller: playlistInput,
+    ),
+    actions: [
+      ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context, false);
+          },
+          child: const Text("Cancel")),
+      FilledButton(
+          onPressed: () {
+            queue.storage.getQueueFile(
+                playlist: playlistInput.text,
+                autoCreate: true);
+            Navigator.pop(context, false);
+          },
+          child: const Text("Create")),
+    ],
+  );
+}
 
 Widget queueDialog(BuildContext context, FileSystemEntity file) {
   double screenWidth = MediaQuery.of(context).size.width;
@@ -33,56 +71,21 @@ Widget queueDialog(BuildContext context, FileSystemEntity file) {
                       fontSize: screenWidth / 30),
                 ),
                 onTap: () async {
-                  TextEditingController playlistInput = TextEditingController();
                   await showDialog(
-                      context: context,
-                      builder: (dialogContext) {
-                        return AlertDialog(
-                          icon: Image.asset(
-                            'assets/folder.png',
-                            color: Theme.of(context).colorScheme.onSurface, // foreground
-                            height: screenWidth / 10,
-                            fit: BoxFit.contain,
-                          ),
-                          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
-                          content: TextField(
-                            decoration: const InputDecoration(
-                                contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                                border: OutlineInputBorder(
-                                  gapPadding: 0,
-                                ),
-                                hintText: "Insert playlist name"),
-                            controller: playlistInput,
-                          ),
-                          actions: [
-                            ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pop(dialogContext, false);
-                                },
-                                child: const Text("Cancel")),
-                            FilledButton(
-                                onPressed: () {
-                                  storage.getQueueFile(
-                                      playlist: playlistInput.text,
-                                      autoCreate: true);
-                                  Navigator.pop(dialogContext, false);
-                                },
-                                child: const Text("Create")),
-                          ],
-                        );
-                      });
-                  playlists = await storage.getPlaylists();
+                    context: context, 
+                    builder: (dialogContext) => createPlaylistDialog(dialogContext)
+                  );
+                  queue.updatePlaylists();
+                  setState(() {});
                 },
               ),
             ),
             Expanded(
               child: ListView.builder(
-                  itemCount: playlists.length,
+                  itemCount: queue.playlists.length,
                   itemBuilder: ((context, index) {
-                    String playlist = playlists[index]
-                        .replaceAll("queue_", "")
-                        .replaceAll(".txt", "");
-                    bool contains = storage.checkFile(file, playlist: playlist);
+                    String playlist = queue.playlists[index];
+                    bool contains = queue.storage.checkFile(file, playlist: playlist);
     
                     Color backgroundColor = contains
                         ? Theme.of(context).colorScheme.primary
@@ -112,9 +115,9 @@ Widget queueDialog(BuildContext context, FileSystemEntity file) {
                       ),
                       onTap: () async {
                         if (!contains) {
-                          addToQueue(file, playlist);
+                          queue.addToQueue(file, playlist);
                         } else {
-                          removeFromQueue(file, playlist);
+                          queue.removeFromQueue(file, playlist);
                         }
                         Navigator.pop(context, false);
                       },
@@ -138,7 +141,7 @@ Widget queueDialog(BuildContext context, FileSystemEntity file) {
                                   ),
                                   FilledButton(
                                     onPressed: () {
-                                      storage.removeQueueFile(playlist);
+                                      queue.storage.removeQueueFile(playlist);
                                       Navigator.pop(dialogContext, false);
                                     },
                                     child: const Text("Yes")
@@ -147,7 +150,7 @@ Widget queueDialog(BuildContext context, FileSystemEntity file) {
                               );
                             }
                           );
-                          playlists = await storage.getPlaylists();
+                          await queue.updatePlaylists();
                           setState(() {});
                         },
                       ),

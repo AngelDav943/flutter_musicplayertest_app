@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 
 import '../widgets/inputs.dart';
 import '../player.dart' as player;
+import '../main.dart' as main;
 
 import '../widgets/bottom_bar.dart' as bottom_bar;
 
-import '../queue_storage.dart';
+import '../classes/queue_storage.dart';
 //storage.QueueStorage
 
 String currentPlaylist = "default";
@@ -18,14 +19,21 @@ bool shuffle = false;
 QueueStorage storage = QueueStorage();
 
 List<String> playlists = [];
+List<String> internalPlaylists = [];
+
+Future<bool> updatePlaylists() async {
+  internalPlaylists = await storage.getPlaylists();
+  playlists = List.from(internalPlaylists);
+  return true;
+}
 
 Future<bool> initialize() async {
   storage.initialise();
-  playlists = await storage.getPlaylists();
-  List<String> newList = await storage.read();
+  updatePlaylists();
+  /*List<String> newList = await storage.read();
   for (String element in newList) {
     queueList.add(element);
-  }
+  }*/
   return true;
 }
 
@@ -39,8 +47,8 @@ Future<bool> setQueue(String playlistName) async {
     queueList = playlistList;
 
     playlists.sort((a, b) {
-      if (a == "queue_$currentPlaylist.txt") return -1;
-      if (b == "queue_$currentPlaylist.txt") return 1;
+      if (a == currentPlaylist) return -1;
+      if (b == currentPlaylist) return 1;
       return 0;
     });
 
@@ -117,9 +125,15 @@ class _QueueState extends State<Queue> {
       return elements;
     }
 
+    int currentIndex = internalPlaylists.indexOf(currentPlaylist);
+    print("internal: $internalPlaylists");
+    print("external: $playlists");
+    print(currentPlaylist);
+    print(currentIndex);
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: main.randomColors[currentIndex % main.randomColors.length],//Theme.of(context).colorScheme.primary,
         toolbarOpacity: 1,
         toolbarHeight: screenWidth/6,
         leadingWidth: screenWidth/4,

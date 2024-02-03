@@ -10,14 +10,6 @@ class QueueStorage {
 
   String _documentsPath = "ERROR";
 
-  /*Future<File> get _localFile async {
-    final path = await _localPath;
-    final localFile = File('$path/queue.txt');
-    
-    if (await localFile.exists() == false) return localFile.create();
-    return localFile;
-  }*/
-
   void initialise() async
   {
     _documentsPath = await _localPath;
@@ -32,6 +24,8 @@ class QueueStorage {
     List<String> playlists = (await queueFolder.list().toList()).map(
       (file) => basename(file.path)
       ).toList();
+
+    playlists = playlists.map((path) => path.replaceAll('queue_', '').replaceAll('.txt', '')).toList();
 
     return playlists;
   }

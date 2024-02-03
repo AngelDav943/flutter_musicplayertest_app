@@ -6,8 +6,7 @@ import 'package:path/path.dart';
 import '../widgets/inputs.dart';
 
 import '../player.dart' as player;
-import 'queue.dart' as queue;
-import '../widgets/queueDialog.dart' as queue_dialog;
+import '../widgets/queue_dialog.dart' as queue_dialog;
 
 List<FileSystemEntity> files = [];
 

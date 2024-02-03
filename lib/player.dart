@@ -13,7 +13,7 @@ import 'package:flutter_background/flutter_background.dart';
 
 import 'widgets/inputs.dart';
 import 'pages/queue.dart' as queue;
-import 'widgets/queueDialog.dart' as queue_dialog;
+import 'widgets/queue_dialog.dart' as queue_dialog;
 
 class Player extends StatefulWidget {
   const Player({super.key, required this.file});

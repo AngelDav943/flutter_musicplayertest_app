@@ -1,14 +1,11 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background/flutter_background.dart';
 import 'package:path/path.dart';
-//import 'package:music_testapp/player.dart';
-//import 'package:music_testapp/widgets/inputs.dart';
 
-import 'notification_service.dart';
 import 'player.dart' as player;
-
 import 'pages/queue.dart' as queue;
 import 'pages/songs.dart' as songs;
 
@@ -16,8 +13,6 @@ import 'pages/songs.dart' as songs;
 import './widgets/bottom_bar.dart' as bottom_bar;
 
 import 'pages/playlists.dart' as playlist;
-
-NotificationService notifService = NotificationService();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +70,16 @@ class MyApp extends StatelessWidget {
   }
 }
 
+List<MaterialColor> randomColors = [
+  Colors.deepOrange,
+  Colors.blue,
+  Colors.lightGreen,
+  Colors.purple,
+  Colors.orange,
+  Colors.red,
+  Colors.teal,
+];
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
   final String title;
@@ -101,31 +106,19 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterBackground.enableBackgroundExecution();
   }
 
-  List<MaterialColor> RandomColors = [
-    Colors.deepOrange,
-    Colors.blue,
-    Colors.lightGreen,
-    Colors.purple,
-    Colors.orange,
-    Colors.red,
-    Colors.teal,
-  ];
-
   @override
   void initState() {
-    notifService.initialize();
     startBackgroundService();
-    RandomColors.shuffle();
+    randomColors.shuffle();
 
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    //notifService.showNotification(title: "Angel's Music player", body: "Hello! test notif");
 
     double screenWidth = MediaQuery.of(context).size.width;
-    double iconWidth = screenWidth / 8;
+    double iconWidth = clampDouble(screenWidth/8, 5, 75);
 
     return Container(
       decoration: BoxDecoration(
@@ -164,7 +157,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             Text(
                               " Playlists >",
                               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.bold, fontSize: screenWidth / 16),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: clampDouble(screenWidth/16, 10, 30)
+                              ),
                             )
                           ],
                         ),
@@ -177,13 +172,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         scrollDirection: Axis.horizontal,
                         itemCount: min(queue.playlists.length, 6), // max 6
                         itemBuilder: (BuildContext context, index) {
-                          String playlistName = queue.playlists[index].replaceAll('queue_','').replaceAll('.txt', '');
+                          String playlistName = queue.playlists[index];
+                          int internalIndex = queue.internalPlaylists.indexOf(playlistName);
+
                           return AspectRatio(
                             aspectRatio: 1,
                             child: Card(
-                              color: RandomColors[index % RandomColors.length],
-                              //color: RandomColors[Random().nextInt(RandomColors.length)],
-                              //color: Theme.of(context).colorScheme.secondary,
+                              color: randomColors[internalIndex % randomColors.length],
                               elevation: 5,
                               child: ListTile(
                                 title: Column(
@@ -191,8 +186,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   children: [
                                     Image.asset(
                                       'assets/folder.png',
-                                      color: Theme.of(context).colorScheme.onSurface, // foreground
-                                      //color: RandomColors[Random().nextInt(RandomColors.length)],
+                                      color: Theme.of(context).colorScheme.onSurface,
                                       fit: BoxFit.contain,
                                     ),
                                     Text(
@@ -201,7 +195,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                           color: Theme.of(context).colorScheme.onSurface,
                                           fontWeight: FontWeight.normal,
-                                          fontSize: screenWidth / 30),
+                                          fontSize: clampDouble(screenWidth/25, 10, 25)
+                                        ),
                                     )
                                   ],
                                 ),
@@ -241,7 +236,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             Text(
                               " Songs >",
                               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.bold, fontSize: screenWidth / 16),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: clampDouble(screenWidth/16, 10, 30)//26
+                                ),
                             )
                           ],
                         ),
@@ -251,25 +248,29 @@ class _MyHomePageState extends State<MyHomePage> {
                       height: kToolbarHeight*7,
                       width: screenWidth * 0.9,
                       child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 250,
+                          childAspectRatio: 5/2
+                        ),
+                        /*
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           childAspectRatio: 5/2,
                         ), 
+                        */
                         itemCount: min(songs.files.length, 8), // max 8
                         itemBuilder: (BuildContext context, index) {
                           String songName = basename(songs.files[index].path).replaceAll(".mp3", "");
                           return Card(
                             color: Theme.of(context).colorScheme.primary,
                             elevation: 10,
-                            child: ListTile(
+                            child: GridTileBar(
                               leading: Image.asset(
                                 'assets/note.png',
                                 color: Theme.of(context).colorScheme.onSurface, // foreground
-                                width: screenWidth / 20,
-                                height: screenWidth / 12,
+                                width: clampDouble(screenWidth/8, 10, 40),//40,
                                 fit: BoxFit.cover,
                               ),
-                              titleAlignment: ListTileTitleAlignment.center,
                               title: Text(
                                 songName,
                                 overflow: TextOverflow.ellipsis,
@@ -277,13 +278,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                     color: Theme.of(context).colorScheme.onSurface,
                                     fontWeight: FontWeight.normal,
-                                    fontSize: screenWidth / 30),
+                                    fontSize: clampDouble(screenWidth/20, 5, 15) //15
+                                  ),
                               ),
-                              onTap: () async {
-                                await Navigator.push(context, MaterialPageRoute(builder: (context) {
-                                  return player.Player(file: songs.files[index]);
-                                }));
-                              }
                             ),
                           );
                         })
