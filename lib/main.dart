@@ -3,9 +3,10 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background/flutter_background.dart';
+import 'package:music_testapp/pages/player.dart';
 import 'package:path/path.dart';
 
-import 'player.dart' as player;
+//import './pages/player.dart' as player;
 import 'pages/queue.dart' as queue;
 import 'pages/songs.dart' as songs;
 
@@ -17,8 +18,7 @@ import 'pages/playlists.dart' as playlist;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await queue.initialize();
-  await songs.getSongs
-  ();
+  await songs.getSongs();
   runApp(const MyApp());
 }
 
@@ -111,27 +111,37 @@ class _MyHomePageState extends State<MyHomePage> {
     startBackgroundService();
     randomColors.shuffle();
 
+    // print(songs.displayFiles);
+    songs.onSongsUpdate.listen((event) {
+      setState(() {});
+    });
+    /*songs.
+    */
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-
     double screenWidth = MediaQuery.of(context).size.width;
-    double iconWidth = clampDouble(screenWidth/8, 5, 75);
+    double screenHeight = MediaQuery.of(context).size.height;
+
+    double minSize = screenWidth;
+    if (screenHeight < screenWidth) minSize = screenHeight;
+
+    double iconWidth = clampDouble(screenWidth / 8, 5, 75);
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.surface,
-            Theme.of(context).colorScheme.background,
-            Theme.of(context).colorScheme.background,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        )
-      ),
+          gradient: LinearGradient(
+        colors: [
+          Theme.of(context).colorScheme.surface,
+          Theme.of(context).colorScheme.background,
+          Theme.of(context).colorScheme.background,
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      )),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: Center(
@@ -139,159 +149,204 @@ class _MyHomePageState extends State<MyHomePage> {
             widthFactor: 1,
             child: ListView(
               children: [
-                Column( // Playlists tab
+                Column(
+                  // Playlists tab
                   children: [
                     GestureDetector(
                       onTap: () async {
-                        await Navigator.push(context, MaterialPageRoute(builder: (context) {
+                        await Navigator.push(context,
+                            MaterialPageRoute(builder: (context) {
                           return const playlist.Playlists();
                         }));
                       },
                       child: Padding(
-                        padding: EdgeInsets.fromLTRB(screenWidth * 0.05, kToolbarHeight, 0, 5.0),
+                        padding: EdgeInsets.fromLTRB(
+                            screenWidth * 0.05, kToolbarHeight, 0, 5.0),
                         child: Row(
                           children: [
                             Image.asset('assets/songqueue.png',
                                 width: iconWidth,
-                                color: Theme.of(context).colorScheme.onBackground),
+                                color:
+                                    Theme.of(context).colorScheme.onBackground),
                             Text(
                               " Playlists >",
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: clampDouble(screenWidth/16, 10, 30)
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: clampDouble(
+                                          screenWidth / 16, 10, 30)),
                             )
                           ],
                         ),
                       ),
                     ),
                     SizedBox(
-                      height: kToolbarHeight*3,
-                      child: ListView.builder(
-                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
-                        scrollDirection: Axis.horizontal,
-                        itemCount: min(queue.playlists.length, 6), // max 6
-                        itemBuilder: (BuildContext context, index) {
-                          String playlistName = queue.playlists[index];
-                          int internalIndex = queue.internalPlaylists.indexOf(playlistName);
+                        height: minSize / 2.5, //kToolbarHeight*3,
+                        child: ListView.builder(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: screenWidth * 0.05),
+                            scrollDirection: Axis.horizontal,
+                            itemCount: min(queue.playlists.length, 6), // max 6
+                            itemBuilder: (BuildContext context, index) {
+                              String playlistName = queue.playlists[index];
+                              int internalIndex =
+                                  queue.internalPlaylists.indexOf(playlistName);
 
-                          return AspectRatio(
-                            aspectRatio: 1,
-                            child: Card(
-                              color: randomColors[internalIndex % randomColors.length],
-                              elevation: 5,
-                              child: ListTile(
-                                title: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Image.asset(
-                                      'assets/folder.png',
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                      fit: BoxFit.contain,
-                                    ),
-                                    Text(
-                                      playlistName,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                          fontWeight: FontWeight.normal,
-                                          fontSize: clampDouble(screenWidth/25, 10, 25)
+                              return AspectRatio(
+                                aspectRatio: 1,
+                                child: Card(
+                                    color: randomColors[
+                                        internalIndex % randomColors.length],
+                                    elevation: 5,
+                                    child: ListTile(
+                                        title: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Image.asset(
+                                              'assets/folder.png',
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                              fit: BoxFit.contain,
+                                            ),
+                                            Text(
+                                              playlistName,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.copyWith(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                      fontWeight:
+                                                          FontWeight.normal,
+                                                      fontSize: clampDouble(
+                                                          screenWidth / 25,
+                                                          10,
+                                                          25)),
+                                            )
+                                          ],
                                         ),
-                                    )
-                                  ],
-                                ),
-                                onTap: () async {
-                                  bool success = await queue.setQueue(playlistName);
-                                  if (success) {
-                                    setState(() {});
-                                    // ignore: use_build_context_synchronously
-                                    Navigator.push(context, MaterialPageRoute(builder: (context) {
-                                      return const queue.Queue();
-                                    }));
-                                  }
-                                }
-                              )
-                            ),
-                          );
-                        })
-                    )
+                                        onTap: () async {
+                                          bool success = await queue
+                                              .setQueue(playlistName);
+                                          if (success) {
+                                            setState(() {});
+                                            // ignore: use_build_context_synchronously
+                                            Navigator.push(context,
+                                                MaterialPageRoute(
+                                                    builder: (context) {
+                                              return const queue.Queue();
+                                            }));
+                                          }
+                                        })),
+                              );
+                            }))
                   ],
                 ),
-                const Padding(padding:EdgeInsets.only(top: kToolbarHeight)),
-                Column( // Songs tab
+                const Padding(padding: EdgeInsets.only(top: kToolbarHeight)),
+                Column(
+                  // Songs tab
                   children: [
                     GestureDetector(
                       onTap: () async {
-                        await Navigator.push(context, MaterialPageRoute(builder: (context) {
+                        await Navigator.push(context,
+                            MaterialPageRoute(builder: (context) {
                           return const songs.Songs();
                         }));
                       },
                       child: Padding(
-                        padding: EdgeInsets.fromLTRB(screenWidth * 0.05, 0, 0, 5.0),
+                        padding:
+                            EdgeInsets.fromLTRB(screenWidth * 0.05, 0, 0, 5.0),
                         child: Row(
                           children: [
                             Image.asset('assets/note2.png',
                                 width: iconWidth,
-                                color: Theme.of(context).colorScheme.onBackground),
+                                color:
+                                    Theme.of(context).colorScheme.onBackground),
                             Text(
                               " Songs >",
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: clampDouble(screenWidth/16, 10, 30)//26
-                                ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: clampDouble(
+                                          screenWidth / 16, 10, 30) //26
+                                      ),
                             )
                           ],
                         ),
                       ),
                     ),
                     SizedBox(
-                      height: kToolbarHeight*7,
-                      width: screenWidth * 0.9,
-                      child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 250,
-                          childAspectRatio: 5/2
-                        ),
-                        /*
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 5/2,
-                        ), 
-                        */
-                        itemCount: min(songs.files.length, 8), // max 8
-                        itemBuilder: (BuildContext context, index) {
-                          String songName = basename(songs.files[index].path).replaceAll(".mp3", "");
-                          return Card(
-                            color: Theme.of(context).colorScheme.primary,
-                            elevation: 10,
-                            child: GridTileBar(
-                              leading: Image.asset(
-                                'assets/note.png',
-                                color: Theme.of(context).colorScheme.onSurface, // foreground
-                                width: clampDouble(screenWidth/8, 10, 40),//40,
-                                fit: BoxFit.cover,
-                              ),
-                              title: Text(
-                                songName,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface,
-                                    fontWeight: FontWeight.normal,
-                                    fontSize: clampDouble(screenWidth/20, 5, 15) //15
+                        height: kToolbarHeight * 7,
+                        width: screenWidth * 0.9,
+                        child: GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 250,
+                                    childAspectRatio: 5 / 2),
+                            itemCount:
+                                min(songs.displayFiles.length, 8), // max 8
+                            itemBuilder: (BuildContext context, index) {
+                              String songName =
+                                  basename(songs.displayFiles[index].path)
+                                      .replaceAll(".mp3", "");
+                              return GestureDetector(
+                                onTap: () async {
+                                  await Navigator.push(context,
+                                      MaterialPageRoute(builder: (context) {
+                                    return Player(
+                                        file: songs.displayFiles[index]);
+                                  }));
+                                },
+                                child: Card(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  elevation: 10,
+                                  child: GridTileBar(
+                                    leading: Image.asset(
+                                      'assets/note.png',
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface, // foreground
+                                      width: clampDouble(
+                                          screenWidth / 8, 10, 40), //40,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    title: Text(
+                                      songName,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 2,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                              fontWeight: FontWeight.normal,
+                                              fontSize: clampDouble(
+                                                  minSize / 25, 5, 15) //15
+                                              ),
+                                    ),
                                   ),
-                              ),
-                            ),
-                          );
-                        })
-                    )
+                                ),
+                              );
+                            }))
                   ],
                 )
               ],
             ),
           ),
         ),
-        bottomNavigationBar: bottom_bar.BottomNav(key: Key("$screenWidth"),),
+        bottomNavigationBar: bottom_bar.BottomNav(
+          key: Key("$screenWidth"),
+        ),
       ),
     );
   }

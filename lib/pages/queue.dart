@@ -4,13 +4,12 @@ import 'package:path/path.dart';
 import 'package:flutter/material.dart';
 
 import '../widgets/inputs.dart';
-import '../player.dart' as player;
+import 'player.dart' as player;
 import '../main.dart' as main;
 
 import '../widgets/bottom_bar.dart' as bottom_bar;
 
 import '../classes/queue_storage.dart';
-//storage.QueueStorage
 
 String currentPlaylist = "default";
 List<String> queueList = [];
@@ -38,11 +37,12 @@ Future<bool> initialize() async {
 }
 
 Future<bool> setQueue(String playlistName) async {
-  if (playlistName.contains('queue_') || playlistName.contains('.txt')) return false;
+  if (playlistName.contains('queue_') || playlistName.contains('.txt'))
+    return false;
 
   currentPlaylist = playlistName;
   List<String> playlistList = await storage.read(playlist: playlistName);
-  
+
   if (playlistList.isNotEmpty) {
     queueList = playlistList;
 
@@ -110,6 +110,14 @@ class Queue extends StatefulWidget {
 
 class _QueueState extends State<Queue> {
   @override
+  void initState() {
+    // update player when song finishes or updates
+    player.onPlayerUpdate.listen((event) => {if (mounted) setState(() {})});
+    
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
 
@@ -126,17 +134,14 @@ class _QueueState extends State<Queue> {
     }
 
     int currentIndex = internalPlaylists.indexOf(currentPlaylist);
-    print("internal: $internalPlaylists");
-    print("external: $playlists");
-    print(currentPlaylist);
-    print(currentIndex);
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: main.randomColors[currentIndex % main.randomColors.length],//Theme.of(context).colorScheme.primary,
+        backgroundColor: main.randomColors[currentIndex %
+            main.randomColors.length], //Theme.of(context).colorScheme.primary,
         toolbarOpacity: 1,
-        toolbarHeight: screenWidth/6,
-        leadingWidth: screenWidth/4,
+        toolbarHeight: screenWidth / 6,
+        leadingWidth: screenWidth / 4,
         leading: ImageButton(
           image: "back.png",
           color: Theme.of(context).colorScheme.onBackground,
@@ -144,7 +149,10 @@ class _QueueState extends State<Queue> {
             Navigator.pop(context, true);
           },
         ),
-        title: Text(currentPlaylist, overflow: TextOverflow.fade,),
+        title: Text(
+          currentPlaylist,
+          overflow: TextOverflow.fade,
+        ),
       ),
       body: Center(
           child: queueList.isNotEmpty

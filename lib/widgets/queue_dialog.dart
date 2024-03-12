@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 
 import '../widgets/inputs.dart';
 import '../pages/queue.dart' as queue;
@@ -16,9 +17,13 @@ AlertDialog createPlaylistDialog(context) {
     ),
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
     content: TextField(
-      decoration: const InputDecoration(
-          contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-          border: OutlineInputBorder(
+      style: TextStyle(color: Theme.of(context).colorScheme.background),
+      decoration: InputDecoration(
+          contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+          fillColor: Colors.white,
+          filled: true,
+          hintStyle: TextStyle(color: Theme.of(context).colorScheme.background),
+          border: const OutlineInputBorder(
             gapPadding: 0,
           ),
           hintText: "Insert playlist name"),

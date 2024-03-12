@@ -4,7 +4,7 @@ import 'package:text_scroll/text_scroll.dart';
 
 import 'inputs.dart';
 
-import '../player.dart' as player;
+import '../pages/player.dart' as player;
 
 class BottomNav extends StatefulWidget {
   const BottomNav({super.key});
@@ -18,7 +18,10 @@ class _BottomNavState extends State<BottomNav> {
   @override
   void initState() {
     player.onPlayerUpdate.listen((event) => {
-      if (mounted) setState(() {})
+      print("mounted? $mounted"),
+      if (mounted) setState(() {
+        print("song player has updated");
+      })
     });
     super.initState();
   }

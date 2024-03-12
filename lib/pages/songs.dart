@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
@@ -5,10 +7,14 @@ import 'package:path/path.dart';
 
 import '../widgets/inputs.dart';
 
-import '../player.dart' as player;
+import 'player.dart' as player;
 import '../widgets/queue_dialog.dart' as queue_dialog;
 
+List<FileSystemEntity> displayFiles = [];
 List<FileSystemEntity> files = [];
+
+StreamController onSongsUpdateController = StreamController.broadcast();
+Stream onSongsUpdate = onSongsUpdateController.stream;
 
 Future<List<FileSystemEntity>> getMusicFiles() async {
   PermissionStatus status = await Permission.manageExternalStorage.status;
@@ -35,6 +41,7 @@ class Songs extends StatefulWidget {
 
 Future<List<FileSystemEntity>> getSongs() async {
   files = await getMusicFiles();
+  displayFiles = files;
   return files;
 }
 
@@ -43,12 +50,17 @@ class _SongsState extends State<Songs> {
     List<FileSystemEntity> songs = await getMusicFiles();
     setState(() {
       files = songs;
+      displayFiles = songs;
     });
   }
 
   @override
   void initState() {
     updateSongFiles();
+
+    // update player when song finishes or updates
+    player.onPlayerUpdate.listen((event) => {if (mounted) setState(() {})});
+
     super.initState();
   }
 
