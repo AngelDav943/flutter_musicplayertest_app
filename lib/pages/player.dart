@@ -333,9 +333,10 @@ class _PlayerState extends State<Player> {
                                 setState(() => draggingVolume = true),
                             onVerticalDragUpdate: (details) {
                               double delta = details.delta.dy / 100;
-                              setState(() =>
-                                  volume = clampDouble(volume - delta, 0, 1));
-                              player.setVolume(volume);
+                              setState(
+                                () => volume = clampDouble(volume - delta, 0, 1)
+                              );
+                              player.setVolume(clampDouble(volume * volume * volume * volume, 0,1));
                             },
                             onVerticalDragCancel: () =>
                                 setState(() => draggingVolume = false),
