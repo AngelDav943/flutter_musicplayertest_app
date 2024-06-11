@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
-import '../player.dart' as player;
+import '../pages/player.dart' as player;
 
 class ImageButton extends StatelessWidget {
   const ImageButton({

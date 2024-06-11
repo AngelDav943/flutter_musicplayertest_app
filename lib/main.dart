@@ -1,24 +1,24 @@
-import 'dart:io';
+import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:path/path.dart';
-import 'package:text_scroll/text_scroll.dart';
 import 'package:flutter_background/flutter_background.dart';
-//import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:music_testapp/pages/player.dart';
+import 'package:path/path.dart';
 
-import 'widgets/inputs.dart';
+//import './pages/player.dart' as player;
+import 'pages/queue.dart' as queue;
+import 'pages/songs.dart' as songs;
 
-import 'notification_service.dart';
-import 'player.dart' as player;
-import 'homelist.dart';
-import 'queue.dart' as queue;
-import 'playlists.dart' as playlist;
+//import './widgets/inputs.dart';
+import './widgets/bottom_bar.dart' as bottom_bar;
 
-NotificationService notifService = NotificationService();
+import 'pages/playlists.dart' as playlist;
 
-void main() {
-  //WidgetsFlutterBinding.ensureInitialized();  
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await queue.initialize();
+  await songs.getSongs();
   runApp(const MyApp());
 }
 
@@ -34,43 +34,51 @@ class MyApp extends StatelessWidget {
         fontFamily: "ComicNeue",
         useMaterial3: true,
         colorScheme: const ColorScheme(
-          brightness: Brightness.light,
-          background: Color.fromRGBO(202, 219, 233, 1),
-          surface: Color.fromRGBO(176, 198, 247, 1),
-          secondary: Color.fromRGBO(135, 122, 219, 1),
-          primary: Color.fromRGBO(117, 172, 255, 1),
-          error: Color.fromRGBO(187, 53, 53, 1),
-          onBackground: Color.fromRGBO(125, 134, 148, 1),
-          onSurface: Color.fromRGBO(77, 95, 255, 1),
-          onSecondary: Color.fromRGBO(177, 193, 225, 1),
-          onPrimary: Color.fromRGBO(201, 214, 250, 1),
-          onError: Color.fromRGBO(255, 207, 207, 1),
-          inversePrimary: Color.fromRGBO(255, 216, 110, 1)
-        ),
+            brightness: Brightness.light,
+            background: Color.fromRGBO(202, 219, 233, 1),
+            surface: Color.fromRGBO(176, 198, 247, 1),
+            secondary: Color.fromRGBO(135, 122, 219, 1),
+            primary: Color.fromRGBO(117, 172, 255, 1),
+            error: Color.fromRGBO(187, 53, 53, 1),
+            onBackground: Color.fromRGBO(125, 134, 148, 1),
+            onSurface: Color.fromRGBO(77, 95, 255, 1),
+            onSecondary: Color.fromRGBO(177, 193, 225, 1),
+            onPrimary: Color.fromRGBO(201, 214, 250, 1),
+            onError: Color.fromRGBO(255, 207, 207, 1),
+            inversePrimary: Color.fromRGBO(255, 216, 110, 1)),
       ),
       darkTheme: ThemeData(
         fontFamily: "ComicNeue",
         useMaterial3: true,
         colorScheme: const ColorScheme(
-          brightness: Brightness.dark,
-          background: Color.fromRGBO(32, 32, 32, 1.0),
-          surface: Color.fromRGBO(77, 84, 97, 1),
-          secondary: Color.fromRGBO(105, 95, 172, 1),
-          primary: Color.fromRGBO(117, 125, 229, 1),
-          error: Color.fromRGBO(187, 53, 53, 1),
-          onBackground: Color.fromRGBO(255, 255, 255, 1.0),
-          onSurface: Color.fromRGBO(255, 255, 255, 1.0),
-          onSecondary: Color.fromRGBO(177, 193, 225, 1),
-          onPrimary: Color.fromRGBO(201, 214, 250, 1),
-          onError: Color.fromRGBO(255, 207, 207, 1),
-          inversePrimary: Color.fromRGBO(255, 216, 110, 1)
-        ),
+            brightness: Brightness.dark,
+            background: Color.fromRGBO(32, 32, 32, 1.0),
+            surface: Color.fromRGBO(77, 84, 97, 1),
+            secondary: Color.fromRGBO(105, 95, 172, 1),
+            primary: Color.fromRGBO(117, 125, 229, 1),
+            error: Color.fromRGBO(187, 53, 53, 1),
+            onBackground: Color.fromRGBO(255, 255, 255, 1.0),
+            onSurface: Color.fromRGBO(255, 255, 255, 1.0),
+            onSecondary: Color.fromRGBO(177, 193, 225, 1),
+            onPrimary: Color.fromRGBO(201, 214, 250, 1),
+            onError: Color.fromRGBO(255, 207, 207, 1),
+            inversePrimary: Color.fromRGBO(255, 216, 110, 1)),
       ),
       themeMode: ThemeMode.dark,
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );   
+    );
   }
 }
+
+List<MaterialColor> randomColors = [
+  Colors.deepOrange,
+  Colors.blue,
+  Colors.lightGreen,
+  Colors.purple,
+  Colors.orange,
+  Colors.red,
+  Colors.teal,
+];
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -81,29 +89,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late List<FileSystemEntity> files = [];
-  int indexPage = 0;
-  Widget currentPage = Center(
-    child: Image.asset("assets/note.png"),
-  );
-
-  void getMusicFiles() async {
-    PermissionStatus status = await Permission.manageExternalStorage.status;
-    if (!status.isGranted) await Permission.manageExternalStorage.request();
-
-    String musicPath = '/storage/emulated/0/Music';
-    if (Platform.isWindows) musicPath = "/Music";
-
-    Directory musicDir = Directory(musicPath);
-    final List<FileSystemEntity> songs = (await musicDir.list().toList()).where((FileSystemEntity file) {
-      return file.path.contains(".mp3"); // leave only .mp3 audios
-    }).toList();
-
-    setState(() {
-      files = songs;
-    });
-  }
-
   void startBackgroundService() async {
     bool backgroundPermissions = await FlutterBackground.hasPermissions;
     if (!backgroundPermissions) return;
@@ -112,7 +97,9 @@ class _MyHomePageState extends State<MyHomePage> {
       notificationTitle: "Music player",
       notificationText: "",
       notificationImportance: AndroidNotificationImportance.Default,
-      notificationIcon: AndroidResource(name: 'notification_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
+      notificationIcon: AndroidResource(
+          name: 'notification_icon',
+          defType: 'drawable'), // Default is ic_launcher from folder mipmap
     );
     await FlutterBackground.initialize(androidConfig: androidConfig);
 
@@ -121,132 +108,246 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    notifService.initialize();
     startBackgroundService();
-    queue.initialize();
-    getMusicFiles();
+    randomColors.shuffle();
 
-    player.onPlayerUpdate.listen((event) => {
-      if (mounted) setState(() {})
+    // print(songs.displayFiles);
+    songs.onSongsUpdate.listen((event) {
+      setState(() {});
     });
+    /*songs.
+    */
+
     super.initState();
   }
-  
+
   @override
   Widget build(BuildContext context) {
-
-    //notifService.showNotification(title: "Angel's Music player", body: "Hello! test notif");
-
-    switch (indexPage) {
-      case 0:
-        currentPage = HomeList(files: files);
-        break;
-      case 1:
-        // ignore: prefer_const_constructors
-        currentPage = queue.Queue();
-        break;
-      case 2: // temp.. c vc
-        currentPage = const playlist.Playlists();
-        break;
-    }
-    
     double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
 
-    currentPage = currentPage;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        toolbarOpacity: 0,
-        toolbarHeight: screenWidth/6,
-        
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ImageButton(
-              image: "note2.png",
-              color: indexPage == 0 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
-              width: screenWidth/8,
-              pressUp: () => setState( () => indexPage = 0),
-            ),
-            ImageButton(
-              image: "songqueue.png",
-              color: indexPage == 1 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
-              width: screenWidth/8,
-              pressUp: () => setState( () => indexPage = 1),
-            ),
-            ImageButton(
-              image: "shuffle.png",
-              color: indexPage == 2 ? Theme.of(context).colorScheme.inversePrimary : Theme.of(context).colorScheme.onPrimary,
-              width: screenWidth/8,
-              pressUp: () => setState( () => indexPage = 2),
-            )
-          ],
-        ),
-      ),
-      body: currentPage,
-      bottomNavigationBar: player.current != null ? Container(
-        decoration: BoxDecoration(
+    double minSize = screenWidth;
+    if (screenHeight < screenWidth) minSize = screenHeight;
+
+    double iconWidth = clampDouble(screenWidth / 8, 5, 75);
+
+    return Container(
+      decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondary,
-            ]
-          ),
-        ),
-        child: GestureDetector(
-          onTapUp: (details) async {
-            if (player.current != null) {
-              await Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return player.Player(file: player.current!);
-              }));
-            }
-          },
-          child: Container(
-            margin: EdgeInsets.all(screenWidth/25),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        colors: [
+          Theme.of(context).colorScheme.surface,
+          Theme.of(context).colorScheme.background,
+          Theme.of(context).colorScheme.background,
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      )),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: FractionallySizedBox(
+            widthFactor: 1,
+            child: ListView(
               children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth / 50),
-                  child: Image.asset(
-                    "assets/note.png",
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    width: screenWidth / 8,
-                  ),
-                ),
-                Expanded(
-                  child: TextScroll(
-                    basename(player.current!.path),
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      //color: Theme.of(context).colorScheme.inversePrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: screenWidth / 25
+                Column(
+                  // Playlists tab
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        await Navigator.push(context,
+                            MaterialPageRoute(builder: (context) {
+                          return const playlist.Playlists();
+                        }));
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                            screenWidth * 0.05, kToolbarHeight, 0, 5.0),
+                        child: Row(
+                          children: [
+                            Image.asset('assets/songqueue.png',
+                                width: iconWidth,
+                                color:
+                                    Theme.of(context).colorScheme.onBackground),
+                            Text(
+                              " Playlists >",
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: clampDouble(
+                                          screenWidth / 16, 10, 30)),
+                            )
+                          ],
+                        ),
+                      ),
                     ),
-                    fadedBorder: true,
-                    velocity: Velocity(pixelsPerSecond: Offset(screenWidth / 25, 0)),
-                  ),
+                    SizedBox(
+                        height: minSize / 2.5, //kToolbarHeight*3,
+                        child: ListView.builder(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: screenWidth * 0.05),
+                            scrollDirection: Axis.horizontal,
+                            itemCount: min(queue.playlists.length, 6), // max 6
+                            itemBuilder: (BuildContext context, index) {
+                              String playlistName = queue.playlists[index];
+                              int internalIndex =
+                                  queue.internalPlaylists.indexOf(playlistName);
+
+                              return AspectRatio(
+                                aspectRatio: 1,
+                                child: Card(
+                                    color: randomColors[
+                                        internalIndex % randomColors.length],
+                                    elevation: 5,
+                                    child: ListTile(
+                                        title: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Image.asset(
+                                              'assets/folder.png',
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                              fit: BoxFit.contain,
+                                            ),
+                                            Text(
+                                              playlistName,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.copyWith(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                      fontWeight:
+                                                          FontWeight.normal,
+                                                      fontSize: clampDouble(
+                                                          screenWidth / 25,
+                                                          10,
+                                                          25)),
+                                            )
+                                          ],
+                                        ),
+                                        onTap: () async {
+                                          bool success = await queue
+                                              .setQueue(playlistName);
+                                          if (success) {
+                                            setState(() {});
+                                            // ignore: use_build_context_synchronously
+                                            Navigator.push(context,
+                                                MaterialPageRoute(
+                                                    builder: (context) {
+                                              return const queue.Queue();
+                                            }));
+                                          }
+                                        })),
+                              );
+                            }))
+                  ],
                 ),
-                ImageButton(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth / 50),
-                  image: (player.playing == false) ? "play.png" : "pause.png",
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  width: screenWidth / 8,
-                  pressUp: () async {   
-                    if (player.playing) {
-                      player.player.pause();
-                    } else {
-                      player.player.resume();
-                    }
-                    setState(() {
-                      player.playing = !player.playing;
-                    });
-                  },
-                ),
+                const Padding(padding: EdgeInsets.only(top: kToolbarHeight)),
+                Column(
+                  // Songs tab
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        await Navigator.push(context,
+                            MaterialPageRoute(builder: (context) {
+                          return const songs.Songs();
+                        }));
+                      },
+                      child: Padding(
+                        padding:
+                            EdgeInsets.fromLTRB(screenWidth * 0.05, 0, 0, 5.0),
+                        child: Row(
+                          children: [
+                            Image.asset('assets/note2.png',
+                                width: iconWidth,
+                                color:
+                                    Theme.of(context).colorScheme.onBackground),
+                            Text(
+                              " Songs >",
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: clampDouble(
+                                          screenWidth / 16, 10, 30) //26
+                                      ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                        height: kToolbarHeight * 7,
+                        width: screenWidth * 0.9,
+                        child: GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 250,
+                                    childAspectRatio: 5 / 2),
+                            itemCount:
+                                min(songs.displayFiles.length, 8), // max 8
+                            itemBuilder: (BuildContext context, index) {
+                              String songName =
+                                  basename(songs.displayFiles[index].path)
+                                      .replaceAll(".mp3", "");
+                              return GestureDetector(
+                                onTap: () async {
+                                  await Navigator.push(context,
+                                      MaterialPageRoute(builder: (context) {
+                                    return Player(
+                                        file: songs.displayFiles[index]);
+                                  }));
+                                },
+                                child: Card(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  elevation: 10,
+                                  child: GridTileBar(
+                                    leading: Image.asset(
+                                      'assets/note.png',
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface, // foreground
+                                      width: clampDouble(
+                                          screenWidth / 8, 10, 40), //40,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    title: Text(
+                                      songName,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 2,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                              fontWeight: FontWeight.normal,
+                                              fontSize: clampDouble(
+                                                  minSize / 25, 5, 15) //15
+                                              ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }))
+                  ],
+                )
               ],
             ),
           ),
         ),
-      ) : null,
+        bottomNavigationBar: bottom_bar.BottomNav(
+          key: Key("$screenWidth"),
+        ),
+      ),
     );
   }
 }
