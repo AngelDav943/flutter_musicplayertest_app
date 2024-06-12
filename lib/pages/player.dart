@@ -7,9 +7,9 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:path/path.dart';
 import 'package:audio_session/audio_session.dart';
-import 'package:flutter_background/flutter_background.dart';
 
 import '../widgets/inputs.dart';
 import 'queue.dart' as queue;
@@ -49,7 +49,6 @@ void playSong(FileSystemEntity file) async {
     mode: PlayerMode.mediaPlayer,
   );
 
-  FlutterBackground.enableBackgroundExecution();
 
   if (onComplete != null) onComplete!.cancel();
   onComplete = player.onPlayerComplete.listen((event) {
@@ -57,11 +56,14 @@ void playSong(FileSystemEntity file) async {
     if (queue.loop == false) {
       playing = false;
       current = null;
+      FlutterBackgroundService().invoke("stopService");
     }
-    FlutterBackground.disableBackgroundExecution();
     onPlayerUpdateController.add(null);
   });
+
   current = file;
+  await FlutterBackgroundService().startService();
+  FlutterBackgroundService().invoke("startNotification", {"path": file.path});
   onPlayerUpdateController.add(null);
 }
 
@@ -126,8 +128,9 @@ class _PlayerState extends State<Player> {
     Duration position = Duration.zero;
     Duration duration = await getDuration(display!);
 
-    if (current != null) if (display!.path == current!.path)
+    if (current != null && display!.path == current!.path) {
       position = (await player.getCurrentPosition())!;
+    }
     setState(() {
       songPosition = position;
       songDuration = duration;
@@ -214,13 +217,15 @@ class _PlayerState extends State<Player> {
 
   void toggleLooping() {
     int limit = 1;
-    if (queue.queueList.isNotEmpty && queue.queueList.contains(display!.path))
+    if (queue.queueList.isNotEmpty && queue.queueList.contains(display!.path)) {
       limit = 3;
+    }
 
     int targetMode = loopMode + 1;
-    if (targetMode > limit)
+    if (targetMode > limit) {
       targetMode =
           0; // if targetMode is greater than the limit (1 or 3) reset to 0
+    }
 
     if (current != null && display!.path != current!.path) return;
 
@@ -256,8 +261,9 @@ class _PlayerState extends State<Player> {
 
   @override
   Widget build(BuildContext context) {
-    if (current != null) if (display!.path == current!.path)
+    if (current != null && display!.path == current!.path) {
       localplaying = playing;
+    }
     String filename = basename(display!.path);
 
     double screenWidth = MediaQuery.of(context).size.width;
@@ -333,10 +339,10 @@ class _PlayerState extends State<Player> {
                                 setState(() => draggingVolume = true),
                             onVerticalDragUpdate: (details) {
                               double delta = details.delta.dy / 100;
-                              setState(
-                                () => volume = clampDouble(volume - delta, 0, 1)
-                              );
-                              player.setVolume(clampDouble(volume * volume * volume * volume, 0,1));
+                              setState(() =>
+                                  volume = clampDouble(volume - delta, 0, 1));
+                              player.setVolume(clampDouble(
+                                  volume * volume * volume * volume, 0, 1));
                             },
                             onVerticalDragCancel: () =>
                                 setState(() => draggingVolume = false),

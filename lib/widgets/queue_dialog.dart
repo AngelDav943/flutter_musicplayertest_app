@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
 
 import '../widgets/inputs.dart';
 import '../pages/queue.dart' as queue;

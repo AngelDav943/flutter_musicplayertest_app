@@ -1,12 +1,16 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_background/flutter_background.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:music_testapp/pages/player.dart';
 import 'package:path/path.dart';
 
-//import './pages/player.dart' as player;
+import './pages/player.dart' as player;
 import 'pages/queue.dart' as queue;
 import 'pages/songs.dart' as songs;
 
@@ -15,11 +19,119 @@ import './widgets/bottom_bar.dart' as bottom_bar;
 
 import 'pages/playlists.dart' as playlist;
 
+final FlutterLocalNotificationsPlugin localNotifications =
+    FlutterLocalNotificationsPlugin();
+const AndroidNotificationChannel notifChannel = AndroidNotificationChannel(
+    "AngelMusicPlayer", "Angel's music player",
+    description: "",
+    importance: Importance.defaultImportance,
+    enableVibration: false);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await queue.initialize();
   await songs.getSongs();
+  await initService();
   runApp(const MyApp());
+}
+
+@pragma("vm:entry-point")
+void onStart(ServiceInstance service) {
+  DartPluginRegistrant.ensureInitialized();
+  service.on("setAsForeground").listen((event) {});
+
+  service.on("setAsBackground").listen((event) {});
+
+  service.on("startNotification").listen((event) {
+    // print("EVENT $event");
+    String filename = basename(event?["path"]);
+
+    localNotifications.show(
+        90,
+        notifChannel.name,
+        "Currently playing: $filename ",
+        NotificationDetails(
+            android: AndroidNotificationDetails(
+          notifChannel.id,
+          notifChannel.name,
+          ongoing: true,
+          actions: [
+            // const AndroidNotificationAction('id_1', 'Action 1')
+          ],
+        )));
+  });
+
+  service.on("stopService").listen((event) {
+    localNotifications.cancelAll();
+    service.stopSelf();
+  });
+
+  /*Timer.periodic(const Duration(seconds: 2), (timer) {
+    print("periodic timer ${player.current}");
+    if (player.playing) {
+      print("PLAYER NOTIFICATION ${player.current}");
+    }
+  });*/
+
+  /*player.onPlayerUpdate.listen((event) => {
+        print("EVENT: ${event}"),
+        if (event != null)
+          {
+            localNotifications.show(
+                90,
+                notifChannel.name,
+                "Player ",
+                NotificationDetails(
+                    android: AndroidNotificationDetails(
+                  notifChannel.id,
+                  notifChannel.name,
+                  ongoing: false,
+                  actions: [
+                    const AndroidNotificationAction('id_1', 'Action 1'),
+                    const AndroidNotificationAction('id_2', 'Action 2'),
+                  ],
+                )))
+          }
+        else
+          {localNotifications.cancelAll()}
+      });*/
+}
+
+@pragma("vm:entry-point")
+Future<bool> iosBackground(ServiceInstance service) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  DartPluginRegistrant.ensureInitialized();
+
+  return true;
+}
+
+Future<void> initService() async {
+  FlutterBackgroundService service = FlutterBackgroundService();
+
+  if (Platform.isIOS) {
+    await localNotifications.initialize(
+        const InitializationSettings(iOS: DarwinInitializationSettings()));
+  }
+
+  await localNotifications
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(notifChannel);
+
+  await service.configure(
+      iosConfiguration:
+          IosConfiguration(onBackground: iosBackground, onForeground: onStart),
+      androidConfiguration: AndroidConfiguration(
+        onStart: onStart,
+        autoStart: false,
+        isForegroundMode: true,
+        notificationChannelId: notifChannel.id,
+        initialNotificationTitle: notifChannel.name,
+        initialNotificationContent: "Music player",
+        foregroundServiceNotificationId: 90,
+      ));
+
+  // service.startService();
 }
 
 class MyApp extends StatelessWidget {
@@ -88,37 +200,38 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  void startBackgroundService() async {
-    bool backgroundPermissions = await FlutterBackground.hasPermissions;
-    if (!backgroundPermissions) return;
-
-    const androidConfig = FlutterBackgroundAndroidConfig(
-      notificationTitle: "Music player",
-      notificationText: "",
-      notificationImportance: AndroidNotificationImportance.Default,
-      notificationIcon: AndroidResource(
-          name: 'notification_icon',
-          defType: 'drawable'), // Default is ic_launcher from folder mipmap
-    );
-    await FlutterBackground.initialize(androidConfig: androidConfig);
-
-    FlutterBackground.enableBackgroundExecution();
-  }
-
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   @override
   void initState() {
-    startBackgroundService();
     randomColors.shuffle();
+    WidgetsBinding.instance.addObserver(this);
 
     // print(songs.displayFiles);
     songs.onSongsUpdate.listen((event) {
       setState(() {});
     });
-    /*songs.
-    */
 
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    FlutterBackgroundService().invoke("stopService");
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // print("state change!! $state is playing? ${player.current}");
+    final bool isClosing = (state == AppLifecycleState.detached);
+    final bool isInactive = (state == AppLifecycleState.inactive);
+
+    if (isClosing || (isInactive && player.current == null)) {
+      FlutterBackgroundService().invoke("stopService");
+      localNotifications.cancelAll();
+    }
+    super.didChangeAppLifecycleState(state);
   }
 
   @override

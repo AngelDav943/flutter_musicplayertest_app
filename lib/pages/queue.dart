@@ -37,8 +37,9 @@ Future<bool> initialize() async {
 }
 
 Future<bool> setQueue(String playlistName) async {
-  if (playlistName.contains('queue_') || playlistName.contains('.txt'))
+  if (playlistName.contains('queue_') || playlistName.contains('.txt')) {
     return false;
+  }
 
   currentPlaylist = playlistName;
   List<String> playlistList = await storage.read(playlist: playlistName);
